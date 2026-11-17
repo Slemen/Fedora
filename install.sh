@@ -1,55 +1,34 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -e
 
-REPO_URL="https://github.com/Slemen/Fedora.git"
-WORK_DIR="/tmp/fedora-kde-setup"
+REPO_RAW="https://raw.githubusercontent.com/Slemen/Fedora/main"
+WORK_DIR="/tmp/fedora_nitro_setup"
 
-clear
+mkdir -p "$WORK_DIR"
+cd "$WORK_DIR"
+
 echo "========================================================================"
-echo "  УСТАНОВКА И НАСТРОЙКА FEDORA KDE SPIN (ACER NITRO V 15)"
+echo "  УСТАНОВКА И НАСТРОЙКА FEDORA KDE (ACER NITRO V 15)"
 echo "========================================================================"
-echo ""
-echo "Загрузка актуальных скриптов из репозитория GitHub..."
-
-if ! command -v git >/dev/null 2>&1; then
-    echo "Установка git..."
-    sudo dnf install -y git
-fi
-
-rm -rf "$WORK_DIR"
-git clone --depth 1 "$REPO_URL" "$WORK_DIR" >/dev/null 2>&1
-chmod +x "$WORK_DIR"/*.sh
-
-echo "[OK] Скрипты успешно загружены во временную папку."
-echo ""
-echo "Выберите этап для запуска:"
-echo "  1) Этап 1: Оптимизация DNF, обновление ядра, Timeshift и драйвер NVIDIA"
-echo "  2) Этап 2: Кодеки, Steam, GameMode, Flatpak, Fish, lf и bat"
-echo "  3) Этап 3: Полная самодиагностика системы (проверка GPU, служб и софта)"
-echo "  4) Этап 4: Установка и патч Div Acer Manager Max (DAMX)"
+echo "Выберите этап установки:"
+echo "  1) Этап 1: База, обновление ядра, Timeshift и драйвер NVIDIA (01_base_and_nvidia.sh)"
+echo "  2) Этап 2: Кодеки, Steam, GameMode, Fish, lf и bat (02_software_and_env.sh)"
+echo "  3) Этап 3: Управление вентиляторами и батареей DAMX (03_install_damx.sh)"
+echo "  4) Этап 4: Финальная самодиагностика всей системы (04_verify_setup.sh)"
 echo "  0) Выход"
-echo ""
+echo "========================================================================"
 read -rp "Введите номер этапа [1-4]: " CHOICE
 
 case "$CHOICE" in
-    1)
-        exec "$WORK_DIR/01_base_and_nvidia.sh"
-        ;;
-    2)
-        exec "$WORK_DIR/02_software_and_env.sh"
-        ;;
-    3)
-        exec "$WORK_DIR/03_verify_setup.sh"
-        ;;
-    4)
-        exec "$WORK_DIR/04_install_damx.sh"
-        ;;
-    0)
-        echo "Выход."
-        exit 0
-        ;;
-    *)
-        echo "[ОШИБКА] Неверный выбор. Запустите скрипт снова и введите цифру от 1 до 4."
-        exit 1
-        ;;
+    1) SCRIPT="01_base_and_nvidia.sh" ;;
+    2) SCRIPT="02_software_and_env.sh" ;;
+    3) SCRIPT="03_install_damx.sh" ;;
+    4) SCRIPT="04_verify_setup.sh" ;;
+    0) echo "Выход."; exit 0 ;;
+    *) echo "[ОШИБКА] Неверный выбор."; exit 1 ;;
 esac
+
+echo "Загрузка актуальной версии ${SCRIPT} с GitHub..."
+curl -fsSL "${REPO_RAW}/${SCRIPT}" -o "${WORK_DIR}/${SCRIPT}"
+chmod +x "${WORK_DIR}/${SCRIPT}"
+exec "${WORK_DIR}/${SCRIPT}"
