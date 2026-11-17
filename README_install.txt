@@ -45,7 +45,7 @@
   видеокарты (профиль P8), кодеков, GameMode и оболочки Fish:
 
   cd ~/Документы/Fedora_kde_nitro_setup
-  ./03_verify_setup.sh
+  ./04_verify_setup.sh
 
 - Финал: После перезагрузки (sudo reboot) нажмите клавишу Nitro (или откройте
   Div Acer Manager Max из меню), в Internals Manager выберите профиль Nitro V4,

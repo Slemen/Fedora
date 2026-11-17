@@ -14,8 +14,8 @@
     выполнение и запустите установку:
 
     cd ~/Документы/"Div Acer Manager Max"
-    chmod +x 04_install_damx.sh
-    ./04_install_damx.sh
+    chmod +x 03_install_damx.sh
+    ./03_install_damx.sh
 
 3. Завершение и первичная настройка в программе:
   - Перезагрузите ноутбук (sudo reboot), чтобы подгрузился скомпилированный
