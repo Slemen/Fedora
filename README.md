@@ -7,18 +7,22 @@
 Выберите подходящий вариант команды в зависимости от оболочки терминала:
 
 ### Вариант 1. Для чистой системы (стандартный Bash)
-Откройте терминал сразу после установки Fedora KDE и выполните:
+
+Откройте терминал сразу после установки Fedora KDE и выполните короткую команду:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh)
+bash <(curl -sL slemen.github.io/Fedora/go)
 ```
 
 ### Вариант 2. Универсальный запуск (работает и в Fish, и в Bash)
+
 Скачивает скрипт-диспетчер во временную папку `/tmp` и запускает его:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh
+```fish
+curl -sL slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
 ```
+
+*(Резервная прямая ссылка без GitHub Pages: `curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh`)*
 
 Скрипт автоматически загрузит актуальную версию нужного этапа во временную папку `/tmp` и запустит его.
 
