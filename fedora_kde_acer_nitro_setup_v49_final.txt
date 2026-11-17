@@ -1,0 +1,328 @@
+================================================================================
+ФИНАЛЬНЫЙ ЧЕК-ЛИСТ НАСТРОЙКИ FEDORA KDE SPIN (ВЕРСИЯ v49 — С ИНТЕГРАЦИЕЙ LF)
+Спецификация железа: Acer Nitro V 15 (Intel + NVIDIA RTX 3050)
+Оптимизация: Повседневная работа, Timeshift (BTRFS), DAMX и World of Tanks Blitz
+================================================================================
+
+1. ВВОДНЫЙ ЭТАП: ЗАПИСЬ ОБРАЗА, UEFI (BIOS) И РАЗМЕТКА ДИСКА
+--------------------------------------------------------------------------------
+1.1. Запись ISO на флешку:
+  - Использовать Ventoy или Rufus (Схема разделов: GPT, Целевая система: UEFI, Файловая система: FAT32).
+  - Скопировать этот файл .txt и папку со скриптами на флешку рядом с ISO.
+
+1.2. Настройка UEFI (BIOS) ноутбука Acer Nitro:
+  - При включении зажать F2 для входа в BIOS.
+  - Вкладка Security: Задать Supervisor Password, чтобы открыть доступ к изменению Secure Boot.
+  - Вкладка Boot (или Main): Переключить Secure Boot в положение DISABLED.
+  - Вкладка Main: Убедиться, что режим SATA выставлен в AHCI (при наличии).
+  - Нажать F10 для сохранения и выхода. При перезагрузке зажать F12 и выбрать флешку.
+
+1.3. Ручная разметка диска при установке (под Timeshift BTRFS):
+  В установщике выбрать «Настройка диска вручную» -> открыть редактор хранилища:
+  - Шаг 1 (EFI): Создать раздел 600 MiB (или 629 MB), тип: EFI System Partition (vfat), точка монтирования: /boot/efi.
+  - Шаг 2 (Boot): Создать раздел 2048 MiB (2 GiB), тип: ext4, точка монтирования: /boot.
+  - Шаг 3 (BTRFS): Создать раздел на всё оставшееся место диска (~510 GB), тип: BTRFS, точку монтирования ОСТАВИТЬ ПУСТОЙ.
+  - Шаг 4 (Подтома): Нажать на три точки (⋮) строго напротив строки top-level и создать два независимых подтома на одном уровне отступа:
+      1. Имя: @      | Точка монтирования: /
+      2. Имя: @home  | Точка монтирования: /home
+  - Шаг 5 (Проверка): В таблице под top-level должны стоять @ и @home ровно друг под другом (без вложенности @/@home). Запустить установку (swap-раздел не нужен, используется zram).
+
+
+2. ПЕРВООЧЕРЕДНАЯ НАСТРОЙКА, ОПТИМИЗАЦИЯ SSD И РЕПОЗИТОРИИ (DNF5)
+--------------------------------------------------------------------------------
+2.1. Оптимизация параллельных загрузок DNF5 и зеркал:
+  - Открыть файл: sudo nano /etc/dnf/dnf.conf
+  - Добавить параметры:
+      max_parallel_downloads=10
+      fastestmirror=True
+      defaultyes=True
+      timeout=5
+      country=UA,PL,DE,NL,CZ
+  - Сохранить (Ctrl+O, Enter, Ctrl+X).
+
+2.2. Оптимизация дисковой подсистемы (SSD) в /etc/fstab:
+  - Сделать бэкап файла: sudo cp /etc/fstab /etc/fstab.bak
+  - Открыть файл: sudo nano /etc/fstab
+  - Добавить параметры noatime,discard=async к разделам BTRFS и noatime к /boot (сохраняя ваши реальные UUID!):
+      UUID=ваш-uuid-btrfs  /          btrfs  subvol=@,compress=zstd:1,noatime,discard=async      0 0
+      UUID=ваш-uuid-boot   /boot      ext4   defaults,noatime                                   1 2
+      UUID=ваш-uuid-efi    /boot/efi  vfat   umask=0077,shortname=winnt                         0 2
+      UUID=ваш-uuid-btrfs  /home      btrfs  subvol=@home,compress=zstd:1,noatime,discard=async  0 0
+  - Проверить синтаксис без перезагрузки: sudo mount -a && sudo systemctl daemon-reload
+
+2.3. Скрытие служебного раздела /boot в Dolphin:
+  - Нажать правой кнопкой мыши по «2,0 ГиБ Встроенный диск (nvme0n1p2)» в боковой панели Dolphin -> выбрать «Скрыть устройство» (Hide).
+
+2.4. Синхронизация и полное обновление системы:
+  sudo dnf upgrade --refresh
+
+2.5. Подключение официальных репозиториев RPM Fusion (Free и Non-Free) и метаданных Discover:
+  sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+  sudo dnf install rpmfusion-free-appstream-data rpmfusion-nonfree-appstream-data
+
+2.6. Обновление основных групп пакетов:
+  sudo dnf group upgrade core
+
+
+3. ЗАЩИТА СИСТЕМЫ: НАСТРОЙКА TIMESHIFT (BTRFS)
+--------------------------------------------------------------------------------
+3.1. Установка Timeshift:
+  sudo dnf install timeshift
+
+3.2. Настройка и первый снимок чистой системы:
+  - Запустить Timeshift из меню приложений KDE.
+  - Тип снимков: выбрать BTRFS -> Далее.
+  - Хранилище: выбрать раздел nvme0n1p3 -> Далее.
+  - Расписание: оставить «Ежедневно» (Сохранить: 3), остальные галочки снять -> Далее.
+  - Домашние каталоги: убедиться, что для пользователя (slemen) и root выбрано «Исключить все файлы» (чтобы откат системы не затрагивал @home) -> Готово.
+  - Нажать «Создать» для фиксации первого эталонного снимка чистой системы.
+
+
+4. ДРАЙВЕРЫ NVIDIA, ГИБРИДНАЯ ГРАФИКА (PRIME) И ЭНЕРГОСБЕРЕЖЕНИЕ
+--------------------------------------------------------------------------------
+4.1. Установка проприетарного драйвера, CUDA и утилит проверки:
+  sudo dnf install akmod-nvidia xorg-x11-drv-nvidia-cuda vdpauinfo glx-utils
+
+  ВАЖНО: После завершения установки подождите 3-5 минут перед перезагрузкой, пока модуль akmod скомпилируется под ваше ядро в фоне. Проверить готовность:
+  modinfo -F version nvidia
+
+4.2. Запрет приложениям GTK 4 будить дискретную NVIDIA (экономия батареи и тишина):
+  mkdir -p ~/.config/environment.d
+  echo "GSK_RENDERER=gl" > ~/.config/environment.d/gtk.conf
+
+4.3. Активация режима KMS и блокировка конфликтующих драйверов в ядре Linux:
+  sudo grubby --update-kernel=ALL --args="nvidia-drm.modeset=1 modprobe.blacklist=nouveau,nova_core"
+
+4.4. Сохранение видеопамяти GPU при переходе в спящий режим:
+  - Создать конфиг:
+    echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1" | sudo tee /etc/modprobe.d/nvidia-power-management.conf
+  - Обновить образ начальной загрузки (initramfs):
+    sudo dracut --force
+  - Активировать службы сна NVIDIA (отключив nvidia-persistenced для экономичного простоя P8):
+    sudo systemctl disable --now nvidia-persistenced 2>/dev/null || true
+    sudo systemctl enable nvidia-suspend nvidia-hibernate nvidia-resume
+
+4.5. Перезагрузка и проверка параметров ядра и графики:
+  - Выполнить: sudo reboot
+  - Проверить переменную GTK 4 (должно вывести gl):
+    echo $GSK_RENDERER
+  - Проверить профиль частот и потребление видеокарты в простое (должен быть профиль P8, ~4W):
+    gpuinfo
+  - Проверить включение KMS (должно вывести Y):
+    sudo cat /sys/module/nvidia_drm/parameters/modeset
+  - Проверить сохранение памяти GPU (должно вывести PreserveVideoMemoryAllocations: 1):
+    cat /proc/driver/nvidia/params | grep PreserveVideoMemoryAllocations
+
+
+5. МУЛЬТИМЕДИА, КОДЕКИ, СЛОВАРИ И ИГРОВОЙ СОФТ (DNF5)
+--------------------------------------------------------------------------------
+5.1. Установка полных кодеков мультимедиа и замена урезанного FFmpeg:
+  sudo dnf swap 'ffmpeg-free' 'ffmpeg' --allowerasing
+  sudo dnf group upgrade multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin
+  sudo dnf install libavcodec-freeworld
+
+5.2. Замена урезанного видеодрайвера Intel на полноценный с аппаратным ускорением:
+  sudo dnf swap libva-intel-media-driver intel-media-driver --allowerasing
+  sudo dnf install libva-utils
+
+5.3. Включение кодеков OpenH264 для браузера Firefox:
+  sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1
+  sudo dnf install openh264 gstreamer1-plugin-openh264 mozilla-openh264
+
+5.4. Установка словарей проверки орфографии (Hunspell / Aspell) и Kate:
+  sudo dnf install aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru kate
+  (В Kate: Сервис -> Орфография -> включить «Автоматическая проверка орфографии»).
+
+5.5. Установка утилит совместимости Wine/Proton и архиваторов:
+  sudo dnf install icoutils cabextract p7zip p7zip-plugins unrar
+
+5.6. Установка Steam и полная настройка оптимизатора GameMode:
+  sudo dnf install steam gamemode
+  - Добавить пользователя в группу gamemode:
+    sudo usermod -aG gamemode $USER
+  - Постоянные права доступа к Intel RAPL (для тестов энергопотребления GameMode):
+    echo "z /sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj 0444 root root -" | sudo tee /etc/tmpfiles.d/intel-rapl.conf
+    sudo systemd-tmpfiles --create
+  - Создать конфиг /etc/gamemode.ini для корректного переключения частот Intel и приоритета игры:
+    sudo bash -c 'cat << EOF > /etc/gamemode.ini
+[general]
+desiredgov=performance
+softrealtime=auto
+renice=10
+
+[cpu]
+park_cores=no
+pin_cores=yes
+EOF'
+  - Включить фоновую службу (запускать строго БЕЗ sudo):
+    systemctl --user enable --now gamemoded
+  - Проверить конфигурацию (должно вывести All Tests Passed!):
+    gamemoded -t
+
+5.7. Подключение Flathub и установка игровых утилит (ProtonUp-Qt и Protontricks):
+  flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+  flatpak install -y flathub net.davidotek.pupgui2 com.github.Matoking.protontricks
+  - Исправление ошибки русской локализации в ProtonUp-Qt (KeyError):
+    flatpak override --user --env=LC_ALL=C net.davidotek.pupgui2
+
+
+6. СИСТЕМНЫЕ СЛУЖБЫ, СЕТЬ, И НАСТРОЙКА KDE PLASMA
+--------------------------------------------------------------------------------
+6.1. Ускорение загрузки системы и фоновая очистка SSD:
+  sudo systemctl disable NetworkManager-wait-online.service
+  sudo systemctl enable --now fstrim.timer
+
+6.2. Настройка экрана и композитора (Параметры системы -> Экран и монитор):
+  - Разрешение: 1920x1080, Частота кадров: 144,00 Гц, Масштаб: 100%.
+  - Масштабирование приложений X11: переключить на «Самими приложениями» (устраняет размытие Steam).
+  - Адаптивная синхронизация (VRR): Автоматически; EDR: Снять галочку (отключить).
+  - Разрывы изображения (тиринг): Разрешать в полноэкранных окнах.
+  - Обеспечение эффектов: поставить галочку «Разрешить приложениям блокировать композитинг».
+
+6.3. Управление мышью, сеансом и поиском файлов:
+  - Устройства ввода -> Мышь: Профиль ускорения сменить на «Плоский» (Flat) для прицеливания 1:1.
+  - Вход в систему -> Сеанс рабочего стола: выбрать «Начинать с пустого сеанса» (защита от багов NVIDIA при старте).
+  - Поиск -> Поиск файлов: переключить на «Только имена файлов» и исключить папки /home/slemen/.local/share/Steam, /home/slemen/.var, /home/slemen/.cache.
+
+6.4. Управление питанием (Параметры системы -> Управление питанием):
+  - Питание от сети: При неактивности -> «Ничего не делать» (или 1 час), Профиль -> «Сбалансированный» или «Производительность».
+  - Питание от батареи: При неактивности -> «Спящий режим» (10-15 мин), При закрытии крышки -> «Спящий режим», Профиль -> «Энергосбережение».
+
+
+7. УСТАНОВКА И НАСТРОЙКА DIV ACER MANAGER MAX (DAMX)
+--------------------------------------------------------------------------------
+7.1. Установка зависимостей для сборки модуля ядра (Linuwu-Sense):
+  sudo dnf install kernel-devel kernel-headers gcc make dkms git mokutil
+  (Убедитесь, что ноутбук перезагружен после последнего обновления ядра).
+
+7.2. Скачивание, патч под свежие ядра Linux и установка:
+  1. Скачать свежий архив DAMX-*.tar.xz со страницы релизов Div-Acer-Manager-Max на GitHub (https://github.com/PXDiv/Div-Acer-Manager-Max/releases) в папку ~/Документы/"Div Acer Manager Max" или ~/Документы/Fedora_kde_nitro_setup.
+  2. Распаковать архив, пропатчить устаревшую функцию strncpy и запустить установку:
+     cd ~/Документы/"Div Acer Manager Max"
+     tar -xf DAMX-*.tar.xz
+     cd DAMX-*/
+     sed -i 's/strncpy(/memcpy(/g' Linuwu-Sense/src/linuwu_sense.c
+     sudo ./setup.sh
+  3. В меню установщика выбрать пункт 1 (Install DAMX Suite complete) и нажать Enter.
+
+7.3. Настройка профиля модели ноутбука и лимита батареи в DAMX:
+  - Перезагрузить ноутбук (sudo reboot), чтобы загрузился модуль ядра linuwu_sense.
+  - Запустить Div Acer Manager Max (или нажать аппаратную клавишу Nitro) -> открыть раздел Internals Manager.
+  - В пункте Permanent Model Override выбрать Nitro V4 -> нажать «Restart Drivers and Daemon».
+  - Настроить нужный профиль вентиляторов и ограничение заряда батареи до 80%.
+
+7.4. Настройка резервной горячей клавиши запуска DAMX в KDE Plasma (опционально):
+  - Если аппаратная кнопка Nitro работает штатно, этот шаг можно пропустить.
+  - При необходимости: Параметры системы -> Клавиатура -> Комбинации клавиш -> Добавить новую -> Команду или сценарий...
+  - В поле Команда указать прямой путь: /opt/damx/gui/DivAcerManagerMax (Имя: DAMX).
+
+
+8. ОПТИМИЗАЦИЯ ПОД WORLD OF TANKS BLITZ И PROTON-GE (STEAM)
+--------------------------------------------------------------------------------
+8.1. Скачивание актуальной версии Proton-GE:
+  1. Закрыть Steam полностью (правый клик по значку в трее -> Выход).
+  2. Запустить ProtonUp-Qt из меню приложений KDE.
+  3. Выбрать Install for: Steam -> Add version -> выбрать самую свежую сборку GE-Proton -> Install.
+
+8.2. Включение Proton-GE в Steam:
+  - Steam -> Настройки -> Совместимость (Compatibility) -> включить «Включить Steam Play для всех других продуктов» -> выбрать установленный GE-Proton -> ОК и перезапустить Steam.
+
+8.3. Параметры запуска World of Tanks Blitz:
+  - Правой кнопкой мыши на World of Tanks Blitz в Steam -> Свойства -> Общие -> Параметры запуска:
+    __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only gamemoderun %command%
+
+8.4. Запуск тяжелых Flatpak-приложений и игр на дискретной NVIDIA (при необходимости):
+  flatpak run --env=__NV_PRIME_RENDER_OFFLOAD=1 --env=__GLX_VENDOR_LIBRARY_NAME=nvidia --env=__VK_LAYER_NV_optimus=NVIDIA_only <имя-пакета>
+
+8.5. Внутриигровые настройки WoT Blitz (для экрана 144 Гц и RTX 3050):
+  - Ограничение частоты кадров (FPS): переключить с 60 на 120.
+  - Качество графики и текстуры HD: Высокое; Трава в снайперском режиме: Отключить (для лучшей видимости).
+
+
+9. КАСТОМИЗАЦИЯ ТЕРМИНАЛА (FISH, BAT И ФАЙЛОВЫЙ МЕНЕДЖЕР LF)
+--------------------------------------------------------------------------------
+9.1. Установка оболочки Fish:
+  sudo dnf install fish
+
+9.2. Переключение командной оболочки по умолчанию:
+  chsh -s /usr/bin/fish
+
+9.3. Настройка Konsole (KDE терминал):
+  - Настройка -> Управление профилями -> Создать копию текущего профиля.
+  - Вкладка Общие -> Имя: "Фиш Профиль", Команда: /usr/bin/fish
+  - Выделить созданный профиль и нажать "Сделать по умолчанию".
+
+9.4. Создание нативного файла конфигурации Fish:
+  mkdir -p ~/.config/fish && nano ~/.config/fish/config.fish
+
+  Вставить текст:
+  if status is-interactive
+      set -g fish_greeting ''
+      alias update='sudo dnf upgrade --refresh'
+      alias nvidialog='watch -n 1 nvidia-smi'
+      alias gpuinfo='nvidia-smi --query-gpu=pstate,power.draw,temperature.gpu,utilization.gpu --format=csv,noheader'
+  end
+
+9.5. Настройка цветов и промпта:
+  - Запустить встроенный веб-конфигуратор: fish_config
+  - В браузере выбрать тему Prompt (например, Informativ или Disco) и палитру Colors, нажать Save/Set, закрыть браузер и нажать Enter в терминале.
+
+9.6. Установка и настройка консольного файлового менеджера lf и утилиты bat:
+  - Установка из COPR:
+    sudo dnf copr enable pennbauman/ports
+    sudo dnf install lf bat
+  - Создание базового конфига (~/.config/lf/lfrc):
+    mkdir -p ~/.config/lf && nano ~/.config/lf/lfrc
+    Вставить текст:
+    set shell sh
+    set shellopts '-eu'
+    set ifs "
+"
+    set scrolloff 10
+    set hidden true
+    set drawbox true
+    set period 1
+    set info size
+    set dircounts
+    cmd open ${{
+        case $(file --mime-type -Lb "$f") in
+            text/*) nano "$fx";;
+            *) for f in $fx; do xdg-open "$f" > /dev/null 2> /dev/null & done;;
+        esac
+    }}
+    cmd mkdir %mkdir "$@"
+    cmd mkfile %touch "$@"
+    map a push :mkdir<space>
+    map A push :mkfile<space>
+    map D delete
+  - Интеграция перехода в выбранную папку при выходе (функция lfcd для Fish):
+    nano ~/.config/fish/functions/lfcd.fish
+    Вставить текст:
+    function lfcd --wraps="lf" --description="lf with cd on exit"
+        cd (command lf -print-last-dir $argv)
+    end
+
+
+10. ДИАГНОСТИКА ЖЕЛЕЗА, АВАРИЙНЫЙ ОТКАТ И ЭТАЛОННЫЙ БЭКАП
+--------------------------------------------------------------------------------
+10.1. Проверка режима простоя видеокарты NVIDIA (профиль P8, ~4W):
+  gpuinfo
+  (Или полная таблица: nvidia-smi).
+
+10.2. Диагностика видеокарт, игрового режима и аппаратного ускорения:
+  - Статус GameMode: gamemoded -s
+  - Тест рендера Intel: glxinfo | grep -E "OpenGL vendor|OpenGL renderer"
+  - Тест рендера NVIDIA: __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia __VK_LAYER_NV_optimus=NVIDIA_only glxinfo | grep -E "OpenGL vendor|OpenGL renderer"
+  - Проверка аппаратного декодирования: vainfo (Intel iHD) и vdpauinfo (NVIDIA)
+  - Мониторинг нагрузки Intel (по необходимости): sudo dnf install intel-gpu-tools && sudo intel_gpu_top
+
+10.3. АВАРИЙНЫЙ ОТКАТ ПРИ ЧЕРНОМ ЭКРАНЕ ПОСЛЕ ОБНОВЛЕНИЯ ЯДРА:
+  1. На черном экране нажать Ctrl + Alt + F2 и войти в текстовую консоль.
+  2. Удалить сломанные пакеты драйвера и пересобрать загрузочный образ:
+     sudo dnf remove "*nvidia*" "*akmod-nvidia*" "*xorg-x11-drv-nvidia*"
+     sudo dracut -f --regenerate-all
+     reboot
+
+10.4. Создание финального эталонного снимка в Timeshift:
+  - Открыть Timeshift -> нажать «Создать» -> добавить комментарий «Эталонная настроенная система v49 (NVIDIA + GameMode + DAMX + lf + bat + софт)».
+================================================================================
