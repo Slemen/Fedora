@@ -1,131 +1,280 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
-if [ "$EUID" -eq 0 ]; then
-  echo "ОШИБКА: Запускайте этот скрипт от имени обычного пользователя (без sudo)!"
-  exit 1
+# ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
+# (Acer Nitro V 15). Автор не несёт ответственности за последствия его использования.
+
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+if [[ $EUID -eq 0 ]]; then
+    echo -e "${RED}Запускайте скрипт от обычного пользователя (sudo запросится автоматически).${NC}"
+    exit 1
 fi
 
-confirm() {
-  echo ""
-  echo "======================================================================"
-  echo "ШАГ: $1"
-  echo "======================================================================"
-  read -r -p "Выполнить этот шаг? [y/N]: " response
-  case "$response" in
-    [yY][eE][sS]|[yY]|[дД]) return 0 ;;
-    *) echo "-> Шаг пропущен."; return 1 ;;
-  esac
-}
-
-echo "=== ЭТАП 2: КОДЕКИ, ИГРЫ, GAMEMODE, FISH И ФАЙЛОВЫЙ МЕНЕДЖЕР LF ==="
+echo -e "${CYAN}Для установки софта, игровых оптимизаций и настройки терминала требуются права администратора.${NC}"
 sudo -v
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-if confirm "1. Установка полных кодеков (FFmpeg), видеодрайвера Intel (iHD) и OpenH264"; then
-  sudo dnf swap -y 'ffmpeg-free' 'ffmpeg' --allowerasing
-  sudo dnf group upgrade -y multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin
-  sudo dnf install -y libavcodec-freeworld
-  sudo dnf swap -y libva-intel-media-driver intel-media-driver --allowerasing
-  sudo dnf install -y libva-utils
-  sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1
-  sudo dnf install -y openh264 gstreamer1-plugin-openh264 mozilla-openh264
-  echo "[OK] Мультимедиа и аппаратное ускорение видео настроены."
+echo -e "\n${CYAN}======================================================================${NC}"
+echo -e "${CYAN}  ЭТАП 2: КОДЕКИ, ИГРЫ, ОПТИМИЗАЦИИ И ТЕРМИНАЛ (FISH + KONSOLE)${NC}"
+echo -e "${CYAN}======================================================================${NC}"
+
+echo -e "\n${YELLOW}[1/8] Установка мультимедиа-кодеков (FFmpeg / GStreamer)...${NC}"
+sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing || true
+sudo dnf update -y @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin || true
+echo -e "${GREEN}✔ Мультимедиа-кодеки установлены.${NC}"
+
+echo -e "${YELLOW}[2/8] Установка Steam, GameMode, Gamescope, Protontricks, Fish, Starship, Nano...${NC}"
+sudo dnf install -y \
+    steam gamemode gamescope protontricks \
+    fish starship nano lf bat \
+    earlyoom btrfsmaintenance
+echo -e "${GREEN}✔ Игровые и системные пакеты установлены.${NC}"
+
+echo -e "${YELLOW}[3/8] Установка динамического планировщика system76-scheduler (COPR)...${NC}"
+sudo dnf copr enable -y kylegospo/system76-scheduler
+sudo dnf install -y system76-scheduler
+sudo systemctl enable --now com.system76.Scheduler.service
+echo -e "${GREEN}✔ Планировщик system76-scheduler активирован.${NC}"
+
+echo -e "${YELLOW}[4/8] Активация защиты от зависаний earlyoom и таймера btrfs-scrub.timer...${NC}"
+sudo systemctl enable --now earlyoom
+sudo systemctl enable --now btrfs-scrub.timer
+echo -e "${GREEN}✔ Службы earlyoom и btrfs-scrub.timer включены.${NC}"
+
+echo -e "${YELLOW}[5/8] Настройка игрового буфера звука PipeWire и нативного Wayland...${NC}"
+mkdir -p "$HOME/.config/pipewire/pipewire.conf.d"
+cat << 'EOF' > "$HOME/.config/pipewire/pipewire.conf.d/99-gaming-audio.conf"
+context.properties = {
+    default.clock.rate = 48000
+    default.clock.min-quantum = 1024
+}
+EOF
+systemctl --user restart pipewire.service pipewire-pulse.service wireplumber.service 2>/dev/null || true
+
+mkdir -p "$HOME/.config/environment.d"
+cat << 'EOF' > "$HOME/.config/environment.d/wayland.conf"
+ELECTRON_OZONE_PLATFORM_HINT=auto
+MOZ_ENABLE_WAYLAND=1
+EOF
+echo -e "${GREEN}✔ Конфиги PipeWire и Wayland применены.${NC}"
+
+echo -e "${YELLOW}[6/8] Создание врапперов запуска дискретной NVIDIA (nvgame и nvgame-gs)...${NC}"
+sudo tee /usr/local/bin/nvgame > /dev/null << 'EOF'
+#!/bin/bash
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+exec gamemoderun "$@"
+EOF
+
+sudo tee /usr/local/bin/nvgame-gs > /dev/null << 'EOF'
+#!/bin/bash
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+exec gamemoderun gamescope -W 1920 -H 1080 -f --force-grab-cursor -- "$@"
+EOF
+
+sudo chmod +x /usr/local/bin/nvgame /usr/local/bin/nvgame-gs
+echo -e "${GREEN}✔ Врапперы nvgame и nvgame-gs готовы.${NC}"
+
+echo -e "${YELLOW}[7/8] Настройка цветовой схемы Konsole Newbl1nk и профиля Fish...${NC}"
+mkdir -p "$HOME/.local/share/konsole"
+
+cat << 'EOF' > "$HOME/.local/share/konsole/Newbl1nk.colorscheme"
+[Background]
+Color=27,35,44
+
+[BackgroundFaint]
+Color=18,18,18
+
+[BackgroundIntense]
+Color=18,18,18
+
+[Color0]
+Color=27,29,30
+
+[Color0Faint]
+Color=27,29,30
+
+[Color0Intense]
+Color=80,83,84
+
+[Color1]
+Color=249,38,114
+
+[Color1Faint]
+Color=249,38,114
+
+[Color1Intense]
+Color=255,0,0
+
+[Color2]
+Color=130,180,20
+
+[Color2Faint]
+Color=130,180,20
+
+[Color2Intense]
+Color=125,214,66
+
+[Color3]
+Color=253,151,31
+
+[Color3Faint]
+Color=253,151,31
+
+[Color3Intense]
+Color=254,237,108
+
+[Color4]
+Color=78,130,170
+
+[Color4Faint]
+Color=78,130,170
+
+[Color4Intense]
+Color=12,115,194
+
+[Color5]
+Color=140,84,254
+
+[Color5Faint]
+Color=140,84,254
+
+[Color5Intense]
+Color=158,111,254
+
+[Color6]
+Color=108,130,134
+
+[Color6Faint]
+Color=70,84,87
+
+[Color6Intense]
+Color=137,156,161
+
+[Color7]
+Color=204,204,198
+
+[Color7Faint]
+Color=204,204,198
+
+[Color7Intense]
+Color=248,248,242
+
+[Foreground]
+Color=204,204,204
+
+[ForegroundFaint]
+Color=160,160,160
+
+[ForegroundIntense]
+Color=255,255,255
+
+[General]
+Blur=false
+ColorRandomization=false
+Description=New bl1nk
+Opacity=1
+Wallpaper=
+EOF
+
+cat << 'EOF' > "$HOME/.local/share/konsole/Fish.profile"
+[Appearance]
+ColorScheme=Newbl1nk
+
+[General]
+Command=/usr/bin/fish
+Name=Fish
+Parent=FALLBACK/
+EOF
+
+if command -v kwriteconfig6 >/dev/null 2>&1; then
+    kwriteconfig6 --file "$HOME/.config/konsolerc" --group "Desktop Entry" --key "DefaultProfile" "Fish.profile"
+else
+    cat << 'EOF' > "$HOME/.config/konsolerc"
+[Desktop Entry]
+DefaultProfile=Fish.profile
+EOF
 fi
+echo -e "${GREEN}✔ Профиль Konsole Fish.profile и схема Newbl1nk применены.${NC}"
 
-if confirm "2. Установка словарей орфографии, Kate и архиваторов (Wine/Proton)"; then
-  sudo dnf install -y aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru kate icoutils cabextract p7zip p7zip-plugins unrar
-  echo "[OK] Словари и архиваторы установлены."
-fi
+echo -e "${YELLOW}[8/8] Настройка Starship (с русским временем), Fish и .nanorc...${NC}"
+mkdir -p "$HOME/.config/fish"
 
-if confirm "3. Установка Steam, настройка GameMode, Flathub, ProtonUp-Qt и Protontricks"; then
-  sudo dnf install -y steam gamemode
-  sudo usermod -aG gamemode "$USER"
+cat << 'EOF' > "$HOME/.config/starship.toml"
+add_newline = false
 
-  echo "Настройка постоянных прав доступа к Intel RAPL..."
-  echo "z /sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj 0444 root root -" | sudo tee /etc/tmpfiles.d/intel-rapl.conf > /dev/null
-  sudo systemd-tmpfiles --create
+[character]
+success_symbol = "[·❯❯](bold green)"
+error_symbol = "[✗](bold red)[❯](bold yellow)[❯](bold green)"
 
-  echo "Создание /etc/gamemode.ini..."
-  sudo bash -c 'cat << EOF > /etc/gamemode.ini
-[general]
-desiredgov=performance
-softrealtime=auto
-renice=10
+[cmd_duration]
+min_time = 2000
+format = "за [$duration](bold yellow)"
 
-[cpu]
-park_cores=no
-pin_cores=yes
-EOF'
+[directory]
+read_only = " 🔒"
+read_only_style = "cyan"
 
-  systemctl --user enable --now gamemoded
+[git_branch]
+symbol = "[ ](bold green)"
+truncation_length = 6
+truncation_symbol = ""
 
-  echo "Подключение Flathub и установка ProtonUp-Qt и Protontricks..."
-  flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-  flatpak install -y flathub net.davidotek.pupgui2 com.github.Matoking.protontricks
-  flatpak override --user --env=LC_ALL=C net.davidotek.pupgui2
-  echo "[OK] Игровое окружение установлено и настроено."
-fi
+[git_commit]
+commit_hash_length = 4
+tag_symbol = "🔖 "
 
-if confirm "4. Отключение ожидания сети на старте, настройка Fish, lf и bat"; then
-  sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
+[git_status]
+conflicted = "🏳 "
+ahead = "🏎💨"
+behind = "😰"
+diverged = "😵"
+untracked = "🤷‍"
+stashed = "📦 "
+modified = "📝"
+staged = '[++\($count\)](green)'
+renamed = "👅"
+deleted = "🗑 "
+EOF
 
-  sudo dnf copr enable -y pennbauman/ports
-  sudo dnf install -y fish lf bat
+cat << 'EOF' > "$HOME/.config/fish/config.fish"
+set -g -x fish_greeting ''
 
-  mkdir -p "$HOME/.config/fish/functions"
-  cat << 'EOF' > "$HOME/.config/fish/config.fish"
+alias gpuinfo='nvidia-smi'
+alias upd='sudo dnf upgrade --refresh'
+alias clean='sudo dnf clean all'
+
 if status is-interactive
-    set -g fish_greeting ''
-    alias update='sudo dnf upgrade --refresh'
-    alias nvidialog='watch -n 1 nvidia-smi'
-    alias gpuinfo='nvidia-smi --query-gpu=pstate,power.draw,temperature.gpu,utilization.gpu --format=csv,noheader'
+    starship init fish | source
 end
 EOF
 
-  cat << 'EOF' > "$HOME/.config/fish/functions/lfcd.fish"
-function lfcd --wraps="lf" --description="lf with cd on exit"
-    cd (command lf -print-last-dir $argv)
-end
+cat << 'EOF' > "$HOME/.nanorc"
+set historylog
+set linenumbers
+set titlecolor bold,lightwhite,blue
+set statuscolor bold,green
+set errorcolor bold,lightwhite,red
+set stripecolor ,yellow
+set numbercolor bold,cyan
+set keycolor bold,green
+bind ^S savefile main
+include "/usr/share/nano/*.nanorc"
 EOF
 
-  mkdir -p "$HOME/.config/lf"
-  cat << 'EOF' > "$HOME/.config/lf/lfrc"
-set shell sh
-set shellopts '-eu'
-set ifs "
-"
-set scrolloff 10
-set hidden true
-set drawbox true
-set period 1
-set info size
-set dircounts
+sudo cp "$HOME/.nanorc" /root/.nanorc
+echo -e "${GREEN}✔ Конфиги Starship, Fish и .nanorc записаны.${NC}"
 
-cmd open ${{
-    case $(file --mime-type -Lb "$f") in
-        text/*) nano "$fx";;
-        *) for f in $fx; do xdg-open "$f" > /dev/null 2> /dev/null & done;;
-    esac
-}}
-
-cmd mkdir %mkdir "$@"
-cmd mkfile %touch "$@"
-map a push :mkdir<space>
-map A push :mkfile<space>
-map D delete
-EOF
-
-  if [ "$SHELL" != "/usr/bin/fish" ]; then
-    echo "Переключение оболочки по умолчанию на Fish (потребуется пароль пользователя):"
-    chsh -s /usr/bin/fish || true
-  fi
-  echo "[OK] Fish, lf и bat настроены."
-fi
-
-echo ""
-echo "======================================================================"
-echo "ЭТАП 2 ЗАВЕРШЕН!"
-echo "Перезагрузите ноутбук (sudo reboot), чтобы применились права группы"
-echo "gamemode, переменные среды и оболочка Fish."
-echo "После перезагрузки запустите скрипт проверки: ./04_verify_setup.sh"
-echo "======================================================================"
+echo -e "\n${GREEN}======================================================================${NC}"
+echo -e "${GREEN}Этап 2 завершён! Перезагрузите ноутбук перед установкой DAMX.${NC}"
+echo -e "${GREEN}======================================================================${NC}"

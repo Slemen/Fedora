@@ -1,127 +1,195 @@
 #!/usr/bin/env bash
 
+# ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
+# (Acer Nitro V 15). Автор не несёт ответственности за последствия его использования.
+
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
-OK_COUNT=0
-WARN_COUNT=0
-FAIL_COUNT=0
+PASS=0
+FAIL=0
 
-print_ok()   { echo -e "  ${GREEN}[OK]${NC}   $1"; ((OK_COUNT++)); }
-print_warn() { echo -e "  ${YELLOW}[WARN]${NC} $1"; ((WARN_COUNT++)); }
-print_fail() { echo -e "  ${RED}[FAIL]${NC} $1"; ((FAIL_COUNT++)); }
+echo -e "${CYAN}======================================================================${NC}"
+echo -e "${CYAN}  ФИНАЛЬНАЯ КОМПЛЕКСНАЯ ДИАГНОСТИКА СИСТЕМЫ (18 ПУНКТОВ)${NC}"
+echo -e "${CYAN}======================================================================${NC}"
 
-echo "========================================================================"
-echo "  ФИНАЛЬНАЯ ДИАГНОСТИКА СИСТЕМЫ FEDORA KDE (ACER NITRO V 15)"
-echo "========================================================================"
-
-echo -e "\n[1/5] Проверка графики NVIDIA и параметров ядра:"
-if lsmod | grep -q "^nvidia "; then
-    NV_VER=$(modinfo -F version nvidia 2>/dev/null || echo "неизвестно")
-    print_ok "Модуль ядра NVIDIA загружен (версия: ${NV_VER})"
+# 1. Драйвер NVIDIA
+if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
+    echo -e "[ ${GREEN}OK${NC} ] 1. Драйвер NVIDIA активен и отвечает через nvidia-smi"
+    ((PASS++))
 else
-    print_fail "Модуль ядра NVIDIA НЕ загружен"
+    echo -e "[ ${RED}FAIL${NC} ] 1. Драйвер NVIDIA не активен"
+    ((FAIL++))
 fi
 
-if [[ "$(cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null)" == "Y" ]]; then
-    print_ok "Режим NVIDIA DRM KMS активен (modeset=Y)"
+# 2. Ускорение DNF5
+if grep -q "max_parallel_downloads" /etc/dnf/dnf.conf 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 2. Параллельная загрузка в DNF5 настроена"
+    ((PASS++))
 else
-    print_fail "Режим NVIDIA DRM KMS не активен"
+    echo -e "[ ${RED}FAIL${NC} ] 2. Оптимизация DNF5 не найдена"
+    ((FAIL++))
 fi
 
-if grep -q "nouveau" /proc/cmdline && grep -q "nova_core" /proc/cmdline; then
-    print_ok "Драйверы nouveau и nova_core заблокированы в ядре"
+# 3. Timeshift
+if command -v timeshift >/dev/null 2>&1; then
+    echo -e "[ ${GREEN}OK${NC} ] 3. Утилита резервного копирования Timeshift установлена"
+    ((PASS++))
 else
-    print_warn "Не найдена полная блокировка nouveau/nova_core в параметрах ядра"
+    echo -e "[ ${RED}FAIL${NC} ] 3. Timeshift не установлен"
+    ((FAIL++))
 fi
 
-if grep -q "PreserveVideoMemoryAllocations=1" /etc/modprobe.d/nvidia-power-management.conf 2>/dev/null; then
-    print_ok "Сохранение видеопамяти в спящем режиме включено"
+# 4. Лимиты кэша NVMe (CachyOS)
+DIRTY=$(sysctl -n vm.dirty_bytes 2>/dev/null)
+DIRTY_BG=$(sysctl -n vm.dirty_background_bytes 2>/dev/null)
+if [[ "$DIRTY" == "268435456" && "$DIRTY_BG" == "67108864" ]]; then
+    echo -e "[ ${GREEN}OK${NC} ] 4. Лимиты записи кэша NVMe (dirty_bytes=$DIRTY, bg=$DIRTY_BG)"
+    ((PASS++))
 else
-    print_warn "Не найден конфиг сохранения видеопамяти NVIDIA"
+    echo -e "[ ${RED}FAIL${NC} ] 4. Лимиты записи кэша NVMe не применились"
+    ((FAIL++))
 fi
 
-if systemctl is-enabled nvidia-suspend.service nvidia-resume.service &>/dev/null; then
-    print_ok "Службы сна NVIDIA (suspend, resume) включены"
+# 5. ZRAM page-cluster и nmi_watchdog
+PAGE_CL=$(sysctl -n vm.page-cluster 2>/dev/null)
+NMI=$(sysctl -n kernel.nmi_watchdog 2>/dev/null)
+if [[ "$PAGE_CL" == "0" && "$NMI" == "0" ]]; then
+    echo -e "[ ${GREEN}OK${NC} ] 5. Параметры ZRAM page-cluster=0 и nmi_watchdog=0 активны"
+    ((PASS++))
 else
-    print_fail "Службы сна NVIDIA не включены"
+    echo -e "[ ${RED}FAIL${NC} ] 5. Ошибка параметров page-cluster или nmi_watchdog"
+    ((FAIL++))
 fi
 
-echo -e "\n[2/5] Проверка энергосбережения и профилей GPU:"
-if grep -q "GSK_RENDERER=gl" ~/.config/environment.d/gtk.conf 2>/dev/null; then
-    print_ok "Запрет GTK 4 будить NVIDIA настроен (GSK_RENDERER=gl)"
+# 6. Сетевые буферы CachyOS
+RMEM=$(sysctl -n net.core.rmem_max 2>/dev/null)
+WMEM=$(sysctl -n net.core.wmem_max 2>/dev/null)
+if [[ "$RMEM" == "16777216" && "$WMEM" == "16777216" ]]; then
+    echo -e "[ ${GREEN}OK${NC} ] 6. Расширенные сетевые буферы CachyOS активны (16 МБ)"
+    ((PASS++))
 else
-    print_warn "Переменная GSK_RENDERER=gl не найдена в ~/.config/environment.d/gtk.conf"
+    echo -e "[ ${RED}FAIL${NC} ] 6. Сетевые буферы не изменились"
+    ((FAIL++))
 fi
 
-PSTATE=$(nvidia-smi --query-gpu=pstate --format=csv,noheader 2>/dev/null | tr -d ' ')
-if [[ "$PSTATE" == "P8" ]]; then
-    print_ok "Видеокарта NVIDIA в экономичном режиме простоя (${PSTATE})"
-elif [[ -n "$PSTATE" ]]; then
-    print_warn "Видеокарта в активном режиме (${PSTATE}). Закройте тяжелые окна для перехода в P8"
+# 7. Служба system76-scheduler
+if systemctl is-active --quiet com.system76.Scheduler.service; then
+    echo -e "[ ${GREEN}OK${NC} ] 7. Динамический планировщик system76-scheduler запущен"
+    ((PASS++))
 else
-    print_fail "Не удалось опросить состояние видеокарты через nvidia-smi"
+    echo -e "[ ${RED}FAIL${NC} ] 7. Служба com.system76.Scheduler.service не активна"
+    ((FAIL++))
 fi
 
-echo -e "\n[3/5] Проверка мультимедиа и ускорения видео:"
-if rpm -q ffmpeg &>/dev/null; then
-    print_ok "Установлен полноценный пакет FFmpeg"
+# 8. Служба earlyoom
+if systemctl is-active --quiet earlyoom.service; then
+    echo -e "[ ${GREEN}OK${NC} ] 8. Защита от зависаний памяти earlyoom активна"
+    ((PASS++))
 else
-    print_fail "Полноценный пакет FFmpeg не установлен"
+    echo -e "[ ${RED}FAIL${NC} ] 8. Служба earlyoom не активна"
+    ((FAIL++))
 fi
 
-if rpm -q intel-media-driver &>/dev/null; then
-    print_ok "Установлен полноценный видеодрайвер Intel (intel-media-driver)"
+# 9. Таймер обслуживания Btrfs (btrfsmaintenance)
+if systemctl is-enabled --quiet btrfs-scrub.timer 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 9. Таймер обслуживания Btrfs (btrfs-scrub.timer) включён"
+    ((PASS++))
 else
-    print_fail "Пакет intel-media-driver не установлен"
+    echo -e "[ ${RED}FAIL${NC} ] 9. Таймер btrfs-scrub.timer не включён"
+    ((FAIL++))
 fi
 
-if rpm -q mozilla-openh264 &>/dev/null; then
-    print_ok "Кодеки OpenH264 для браузера установлены"
+# 10. Конфиг PipeWire
+if grep -q "default.clock.min-quantum = 1024" "$HOME/.config/pipewire/pipewire.conf.d/99-gaming-audio.conf" 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 10. Конфигурация игрового звука PipeWire (min-quantum=1024) создана"
+    ((PASS++))
 else
-    print_warn "Кодеки OpenH264 не установлены"
+    echo -e "[ ${RED}FAIL${NC} ] 10. Файл конфигурации звука PipeWire не найден"
+    ((FAIL++))
 fi
 
-echo -e "\n[4/5] Проверка Steam, GameMode и системных служб:"
-if [[ -f /etc/tmpfiles.d/intel-rapl.conf ]]; then
-    print_ok "Правило прав доступа к Intel RAPL настроено (/etc/tmpfiles.d/intel-rapl.conf)"
+# 11. Переменные окружения Wayland
+if grep -q "ELECTRON_OZONE_PLATFORM_HINT=auto" "$HOME/.config/environment.d/wayland.conf" 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 11. Переменные нативного Wayland настроены"
+    ((PASS++))
 else
-    print_fail "Отсутствует правило /etc/tmpfiles.d/intel-rapl.conf"
+    echo -e "[ ${RED}FAIL${NC} ] 11. Файл ~/.config/environment.d/wayland.conf не найден"
+    ((FAIL++))
 fi
 
-if gamemoded -t &>/dev/null; then
-    print_ok "GameMode прошёл все тесты (All Tests Passed!)"
+# 12. Игровые врапперы nvgame / nvgame-gs и пакеты Steam / Gamescope / GameMode
+if [[ -x "/usr/local/bin/nvgame" && -x "/usr/local/bin/nvgame-gs" ]] && command -v steam >/dev/null 2>&1 && command -v gamescope >/dev/null 2>&1 && command -v gamemoderun >/dev/null 2>&1; then
+    echo -e "[ ${GREEN}OK${NC} ] 12. Steam, врапперы nvgame / nvgame-gs, gamescope и gamemode готовы"
+    ((PASS++))
 else
-    print_warn "GameMode установлен, но gamemoded -t вернул предупреждения"
+    echo -e "[ ${RED}FAIL${NC} ] 12. Отсутствуют врапперы nvgame/nvgame-gs или игровые пакеты"
+    ((FAIL++))
 fi
 
-if systemctl is-enabled fstrim.timer &>/dev/null; then
-    print_ok "Таймер фоновой очистки SSD (fstrim.timer) активен"
+# 13. Блокировка Intel Watchdog (iTCO_wdt)
+if grep -q "blacklist iTCO_wdt" /etc/modprobe.d/watchdog.conf 2>/dev/null && ! lsmod | grep -q "iTCO_wdt"; then
+    echo -e "[ ${GREEN}OK${NC} ] 13. Модуль Intel Watchdog (iTCO_wdt) заблокирован и не загружен"
+    ((PASS++))
 else
-    print_warn "Таймер fstrim.timer не активен"
+    echo -e "[ ${RED}FAIL${NC} ] 13. Модуль iTCO_wdt всё ещё загружен (проверьте watchdog.conf и перезагрузку)"
+    ((FAIL++))
 fi
 
-echo -e "\n[5/5] Проверка терминала Fish, lf и модулей Acer Nitro:"
-if [[ "$SHELL" == *"fish"* ]]; then
-    print_ok "Оболочка Fish установлена и выбрана по умолчанию"
+# 14. Тема Konsole Newbl1nk и профиль Fish
+if [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" && -f "$HOME/.local/share/konsole/Fish.profile" ]] && grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 14. Цветовая схема Konsole Newbl1nk и профиль Fish.profile активны"
+    ((PASS++))
 else
-    print_warn "Оболочка Fish не выбрана по умолчанию"
+    echo -e "[ ${RED}FAIL${NC} ] 14. Профиль Konsole Fish.profile или тема Newbl1nk не настроены"
+    ((FAIL++))
 fi
 
-if command -v lf &>/dev/null && command -v bat &>/dev/null && grep -q "gpuinfo" ~/.config/fish/config.fish 2>/dev/null; then
-    print_ok "Файловый менеджер lf, bat и алиас gpuinfo настроены"
+# 15. Оболочка Fish и промпт Starship
+if command -v fish >/dev/null 2>&1 && command -v starship >/dev/null 2>&1 && grep -q "starship init fish" "$HOME/.config/fish/config.fish" 2>/dev/null && grep -q 'read_only_style = "cyan"' "$HOME/.config/starship.toml" 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 15. Оболочка Fish и промпт Starship настроены"
+    ((PASS++))
 else
-    print_warn "Не все компоненты терминала (lf, bat, gpuinfo) найдены"
+    echo -e "[ ${RED}FAIL${NC} ] 15. Ошибка в установке или конфигах Fish / Starship"
+    ((FAIL++))
 fi
 
-if lsmod | grep -q linuwu_sense; then
-    print_ok "Модуль вентиляторов и батареи DAMX (linuwu_sense) загружен и активен"
+# 16. Конфиги редактора nano (~/.nanorc и /root/.nanorc)
+if [[ -f "$HOME/.nanorc" ]] && sudo test -f /root/.nanorc && grep -q 'include "/usr/share/nano/\*.nanorc"' "$HOME/.nanorc" 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 16. Конфигурация редактора nano (~/.nanorc и /root/.nanorc) настроена"
+    ((PASS++))
 else
-    print_warn "Модуль DAMX (linuwu_sense) не загружен (установите через ./03_install_damx.sh или перезагрузите ПК)"
+    echo -e "[ ${RED}FAIL${NC} ] 16. Конфигурация .nanorc отсутствует"
+    ((FAIL++))
 fi
 
-echo "========================================================================"
-echo -e "  ИТОГ ПРОВЕРКИ: ${GREEN}Успешно: ${OK_COUNT}${NC} | ${YELLOW}Предупреждений: ${WARN_COUNT}${NC} | ${RED}Ошибок: ${FAIL_COUNT}${NC}"
-echo "========================================================================"
+# 17. Модуль ядра Acer (linuwu_sense / DAMX)
+if lsmod | grep -q "linuwu_sense"; then
+    echo -e "[ ${GREEN}OK${NC} ] 17. Модуль управления питанием и кулерами linuwu_sense (DAMX) загружен"
+    ((PASS++))
+else
+    echo -e "[ ${RED}FAIL${NC} ] 17. Модуль linuwu_sense не загружен (проверьте этап 03_install_damx.sh)"
+    ((FAIL++))
+fi
+
+# 18. Проверка отсутствия упавших служб systemd
+FAILED_UNITS=$(systemctl --failed --no-legend | wc -l)
+if [[ "$FAILED_UNITS" -eq 0 ]]; then
+    echo -e "[ ${GREEN}OK${NC} ] 18. Упавшие системные службы отсутствуют (systemctl --failed: 0)"
+    ((PASS++))
+else
+    echo -e "[ ${RED}FAIL${NC} ] 18. Обнаружены упавшие службы systemd ($FAILED_UNITS):"
+    systemctl --failed --no-legend
+    ((FAIL++))
+fi
+
+echo -e "${CYAN}----------------------------------------------------------------------${NC}"
+if [[ $FAIL -eq 0 ]]; then
+    echo -e "[ ${GREEN}OK${NC} ] ИТОГ: Все проверки пройдены ($PASS/18)!"
+else
+    echo -e "[ ${RED}FAIL${NC} ] ИТОГ: Пройдено $PASS/18, ошибок: $FAIL."
+fi
+echo -e "${CYAN}======================================================================${NC}"

@@ -1,6 +1,9 @@
 # fedora-kde-script-install
 
-Автоматическая установка и настройка Fedora KDE Spin BTRFS для Acer Nitro V 15.
+Автоматическая установка и настройка Fedora KDE Spin BTRFS для Acer Nitro V 15 (версия **v51**).
+
+> [!WARNING]
+> **Отказ от ответственности (Disclaimer):** Данные установочные скрипты написаны исключительно под личные задачи автора и конкретную аппаратную конфигурацию ноутбука **Acer Nitro V 15** (связка Intel + NVIDIA). Автор не несёт никакой ответственности за возможные сбои, потерю данных или некорректную работу при запуске этих скриптов на других устройствах. Используйте на свой страх и риск и обязательно делайте резервные копии перед запуском.
 
 ## Быстрый запуск прямо с GitHub
 
@@ -28,7 +31,7 @@ curl -sL slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
 
 ## Порядок этапов установки
 
-1. **01_base_and_nvidia.sh** — ускорение DNF5, подключение RPM Fusion, обновление ядра, Timeshift и установка драйвера NVIDIA (с последующей перезагрузкой).
-2. **02_software_and_env.sh** — мультимедиа-кодеки, Steam, GameMode, ProtonUp-Qt, Protontricks, оболочка Fish с алиасом `gpuinfo`, `lf` и `bat` (с последующей перезагрузкой).
-3. **03_install_damx.sh** — установка и патч модуля управления вентиляторами и лимитом заряда батареи Div Acer Manager Max (ищет локальный архив `DAMX-*.tar.xz` в `~/Документы` или сам скачивает свежий релиз с GitHub).
-4. **04_verify_setup.sh** — финальная комплексная самодиагностика драйверов, служб, игрового окружения и модуля `linuwu_sense`.
+1. **01_base_and_nvidia.sh** — ускорение DNF5, подключение RPM Fusion, обновление ядра (`--refresh`), Timeshift, установка драйвера NVIDIA (`akmod-nvidia`), ядерные оптимизации `sysctl` (CachyOS) и блокировка `iTCO_wdt` (с последующей перезагрузкой).
+2. **02_software_and_env.sh** — мультимедиа-кодеки, Steam, GameMode, Gamescope, Protontricks, `system76-scheduler`, `earlyoom`, `btrfsmaintenance` (`btrfs-scrub.timer`), игровой звук PipeWire, нативный Wayland, врапперы `nvgame`/`nvgame-gs`, тема Konsole `Newbl1nk`, оболочка Fish с алиасами (`gpuinfo`, `upd`, `clean`), Starship с русским индикатором времени, `lf`, `bat` и `.nanorc` (с последующей перезагрузкой).
+3. **03_install_damx.sh** — установка модуля управления вентиляторами и лимитом заряда батареи Div Acer Manager Max (`linuwu_sense`, ищет локальный архив `DAMX-*.tar.xz` в `~/Документы` или сам скачивает свежий релиз с GitHub).
+4. **04_verify_setup.sh** — финальная комплексная самодиагностика по 18 пунктам (драйверы, службы, оптимизации, терминал, модуль `linuwu_sense` и `systemctl --failed`).
