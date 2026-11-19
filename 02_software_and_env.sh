@@ -218,8 +218,7 @@ success_symbol = "[·❯❯](bold green)"
 error_symbol = "[✗](bold red)[❯](bold yellow)[❯](bold green)"
 
 [cmd_duration]
-min_time = 2000
-format = "за [$duration](bold yellow)"
+disabled = true
 
 [directory]
 read_only = " 🔒"
