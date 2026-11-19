@@ -22,7 +22,7 @@ while true; do
     echo -e "${CYAN}  УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V 15 (v51)${NC}"
     echo -e "${CYAN}======================================================================${NC}"
     echo "1) 01_base_and_nvidia.sh — База, RPM Fusion, ядро, Timeshift, драйвер NVIDIA и sysctl"
-    echo "2) 02_software_and_env.sh — Софт, Steam, GameMode, Gamescope, PipeWire, Fish, Konsole"
+    echo "2) 02_software_and_env.sh — Софт, Steam, GameMode, PipeWire, Fish, Konsole"
     echo "3) 03_install_damx.sh     — Модуль управления вентиляторами и батареей DAMX"
     echo "4) 04_verify_setup.sh     — Комплексная проверка всех 18 пунктов настройки"
     echo "0) Выход"

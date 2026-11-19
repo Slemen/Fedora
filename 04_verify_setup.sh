@@ -121,9 +121,9 @@ else
     ((FAIL++))
 fi
 
-# 12. Игровые врапперы nvgame и пакеты Steam / Gamescope / GameMode
+# 12. Игровой враппер nvgame и пакеты Steam / GameMode
 if [[ -x "/usr/local/bin/nvgame" && -x "/usr/local/bin/nvgame" ]] && command -v steam >/dev/null 2>&1 && command -v gamemoderun >/dev/null 2>&1; then
-    echo -e "[ ${GREEN}OK${NC} ] 12. Steam, врапперы nvgame, gamescope и gamemode готовы"
+    echo -e "[ ${GREEN}OK${NC} ] 12. Steam, врапперы nvgame и gamemode готовы"
     ((PASS++))
 else
     echo -e "[ ${RED}FAIL${NC} ] 12. Отсутствуют врапперы nvgame или игровые пакеты"

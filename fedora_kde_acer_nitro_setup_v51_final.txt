@@ -52,7 +52,7 @@
         - Полная замена ffmpeg-free на полноценный ffmpeg, gstreamer1-plugins-*
         - Аппаратное ускорение видео VA-API / VDPAU
 [ ] 2.2. Игровые пакеты и утилиты (без MangoHud):
-        - steam, gamemode, gamescope, protontricks, lutris
+        - steam, gamemode, protontricks, lutris
 [ ] 2.3. Службы оптимизации производительности и Btrfs:
         - system76-scheduler (COPR): динамический приоритет активных окон и игр
         - earlyoom: защита от полного зависания системы при нехватке ОЗУ/ZRAM
@@ -63,7 +63,6 @@
         - ELECTRON_OZONE_PLATFORM_HINT=auto
 [ ] 2.6. Игровые врапперы дискретной графики RTX 3070 (/usr/local/bin/):
         - nvgame <команда>    : запуск через NVIDIA PRIME Render Offload + GameMode
-        - nvgame-gs <команда> : запуск через NVIDIA + GameMode + Gamescope (1920x1080)
 [ ] 2.7. Полная настройка терминала:
         - Konsole: цветовая схема Newbl1nk и профиль по умолчанию Fish.profile (kwriteconfig6)
         - Оболочка Fish (~/.config/fish/config.fish) с алиасами:
@@ -86,9 +85,9 @@
 ЭТАП 4. ФИНАЛЬНАЯ КОМПЛЕКСНАЯ ДИАГНОСТИКА (04_verify_setup.sh)
 --------------------------------------------------------------------------------
 [ ] 4.1. Запуск финальной проверки из 18 пунктов:
-        - Драйвер NVIDIA, CUDA, Vulkan, Steam, GameMode, Gamescope, DAMX (linuwu_sense)
+        - Драйвер NVIDIA, CUDA, Vulkan, Steam, GameMode, DAMX (linuwu_sense)
+        - Буфер PipeWire, Wayland, враппер nvgame, блокировка iTCO_wdt
         - Лимиты NVMe, ZRAM, сетевые буферы BBR, system76-scheduler, earlyoom, btrfs-scrub.timer
-        - Буфер PipeWire, Wayland, врапперы nvgame/nvgame-gs, блокировка iTCO_wdt
         - Konsole (Newbl1nk + Fish.profile), Fish, Starship (русский формат), .nanorc
         - Проверка отсутствия упавших системных служб (systemctl --failed)
 
