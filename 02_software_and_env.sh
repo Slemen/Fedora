@@ -28,9 +28,9 @@ sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing || true
 sudo dnf update -y @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin || true
 echo -e "${GREEN}✔ Мультимедиа-кодеки установлены.${NC}"
 
-echo -e "${YELLOW}[2/8] Установка Steam, GameMode, Gamescope, Protontricks, Fish, Starship, Nano...${NC}"
+echo -e "${YELLOW}[2/8] Установка Steam, GameMode, Protontricks, Fish, Starship, Nano...${NC}"
 sudo dnf install -y \
-    steam gamemode gamescope protontricks \
+    steam gamemode protontricks \
     fish starship nano lf bat \
     earlyoom btrfsmaintenance
 echo -e "${GREEN}✔ Игровые и системные пакеты установлены.${NC}"
@@ -63,7 +63,7 @@ MOZ_ENABLE_WAYLAND=1
 EOF
 echo -e "${GREEN}✔ Конфиги PipeWire и Wayland применены.${NC}"
 
-echo -e "${YELLOW}[6/8] Создание врапперов запуска дискретной NVIDIA (nvgame и nvgame-gs)...${NC}"
+echo -e "${YELLOW}[6/8] Создание врапперов запуска дискретной NVIDIA (nvgame)...${NC}"
 sudo tee /usr/local/bin/nvgame > /dev/null << 'EOF'
 #!/bin/bash
 export __NV_PRIME_RENDER_OFFLOAD=1
@@ -73,17 +73,9 @@ export __VK_LAYER_NV_optimus=NVIDIA_only
 exec gamemoderun "$@"
 EOF
 
-sudo tee /usr/local/bin/nvgame-gs > /dev/null << 'EOF'
-#!/bin/bash
-export __NV_PRIME_RENDER_OFFLOAD=1
-export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
-export __GLX_VENDOR_LIBRARY_NAME=nvidia
-export __VK_LAYER_NV_optimus=NVIDIA_only
-exec gamemoderun gamescope -W 1920 -H 1080 -f --force-grab-cursor -- "$@"
-EOF
 
-sudo chmod +x /usr/local/bin/nvgame /usr/local/bin/nvgame-gs
-echo -e "${GREEN}✔ Врапперы nvgame и nvgame-gs готовы.${NC}"
+sudo chmod +x /usr/local/bin/nvgame
+echo -e "${GREEN}✔ Врапперы nvgame готовы.${NC}"
 
 echo -e "${YELLOW}[7/8] Настройка цветовой схемы Konsole Newbl1nk и профиля Fish...${NC}"
 mkdir -p "$HOME/.local/share/konsole"

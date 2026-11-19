@@ -32,6 +32,6 @@ curl -sL slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
 ## Порядок этапов установки
 
 1. **01_base_and_nvidia.sh** — ускорение DNF5, подключение RPM Fusion, обновление ядра (`--refresh`), Timeshift, установка драйвера NVIDIA (`akmod-nvidia`), ядерные оптимизации `sysctl` (CachyOS) и блокировка `iTCO_wdt` (с последующей перезагрузкой).
-2. **02_software_and_env.sh** — мультимедиа-кодеки, Steam, GameMode, Gamescope, Protontricks, `system76-scheduler`, `earlyoom`, `btrfsmaintenance` (`btrfs-scrub.timer`), игровой звук PipeWire, нативный Wayland, врапперы `nvgame`/`nvgame-gs`, тема Konsole `Newbl1nk`, оболочка Fish с алиасами (`gpuinfo`, `upd`, `clean`), Starship с русским индикатором времени, `lf`, `bat` и `.nanorc` (с последующей перезагрузкой).
+2. **02_software_and_env.sh** — мультимедиа-кодеки, Steam, GameMode, Protontricks, `system76-scheduler`, `earlyoom`, `btrfsmaintenance` (`btrfs-scrub.timer`), игровой звук PipeWire, нативный Wayland, врапперы `nvgame`/`nvgame`, тема Konsole `Newbl1nk`, оболочка Fish с алиасами (`gpuinfo`, `upd`, `clean`), Starship с русским индикатором времени, `lf`, `bat` и `.nanorc` (с последующей перезагрузкой).
 3. **03_install_damx.sh** — установка модуля управления вентиляторами и лимитом заряда батареи Div Acer Manager Max (`linuwu_sense`, ищет локальный архив `DAMX-*.tar.xz` в `~/Документы` или сам скачивает свежий релиз с GitHub).
 4. **04_verify_setup.sh** — финальная комплексная самодиагностика по 18 пунктам (драйверы, службы, оптимизации, терминал, модуль `linuwu_sense` и `systemctl --failed`).
