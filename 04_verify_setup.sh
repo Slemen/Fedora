@@ -122,7 +122,7 @@ else
 fi
 
 # 12. Игровой враппер nvgame и пакеты Steam / GameMode
-if [[ -x "/usr/local/bin/nvgame" && -x "/usr/local/bin/nvgame" ]] && command -v steam >/dev/null 2>&1 && command -v gamemoderun >/dev/null 2>&1; then
+if [[ -x "/usr/local/bin/nvgame" ]] && command -v steam >/dev/null 2>&1 && command -v gamemoderun >/dev/null 2>&1; then
     echo -e "[ ${GREEN}OK${NC} ] 12. Steam, врапперы nvgame и gamemode готовы"
     ((PASS++))
 else
