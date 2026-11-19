@@ -247,14 +247,29 @@ deleted = "🗑 "
 EOF
 
 cat << 'EOF' > "$HOME/.config/fish/config.fish"
-set -g -x fish_greeting ''
-
-alias gpuinfo='nvidia-smi'
-alias upd='sudo dnf upgrade --refresh'
-alias clean='sudo dnf clean all'
-
 if status is-interactive
+    set -g fish_greeting ""
+    alias gpuinfo="nvidia-smi"
+    alias upd="sudo dnf upgrade --refresh -y && flatpak update -y"
+    alias clean="sudo dnf autoremove -y && sudo dnf clean all && flatpak uninstall --unused -y"
     starship init fish | source
+
+    functions -c fish_prompt _starship_prompt
+    function fish_prompt
+        set -l s (math -s0 "$CMD_DURATION / 1000")
+        set -l t ""
+        if test $s -ge 60
+            set t (set_color --bold yellow)" время: "(math -s0 "$s / 60")"м "(math "$s % 60")"с"(set_color normal)
+        else if test $s -ge 2
+            set t (set_color --bold yellow)" время: "$s"с"(set_color normal)
+        end
+        set -l p (_starship_prompt)
+        if test -n "$t" -a (count $p) -ge 2
+            set p[1] "$p[1]$t"
+        end
+        printf "%s
+" $p
+    end
 end
 EOF
 
