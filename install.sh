@@ -14,7 +14,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 REPO_PAGES="https://slemen.github.io/Fedora"
-REPO_RAW="https://://githubusercontent.com/Fedora/main"
+REPO_RAW="https://raw.githubusercontent.com/Slemen/Fedora/main"
 TMP_DIR="/tmp/fedora_slemen_post"
 mkdir -p "$TMP_DIR"
 
