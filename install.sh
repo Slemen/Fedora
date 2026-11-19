@@ -13,8 +13,8 @@ CYAN='\033[0;36m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-REPO_PAGES="https://github.io"
-REPO_RAW="https://githubusercontent.com"
+REPO_PAGES="https://slemen.github.io/Fedora"
+REPO_RAW="https://githubusercontent.comSlemen/Fedora/main"
 TMP_DIR="/tmp/fedora_slemen_post"
 mkdir -p "$TMP_DIR"
 
