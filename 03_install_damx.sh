@@ -2,7 +2,7 @@
 set -e
 
 # ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
-# (Acer Nitro V 15). Автор не несёт ответственности за последствия его использования.
+# (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -23,15 +23,15 @@ echo -e "\n${CYAN}==============================================================
 echo -e "${CYAN}  ЭТАП 3: УСТАНОВКА DIV ACER MANAGER MAX (DAMX / LINUWU_SENSE)${NC}"
 echo -e "${CYAN}======================================================================${NC}"
 
-echo -e "\n${YELLOW}[1/3] Установка зависимостей сборки (jq, dkms, make, gcc)...${NC}"
+echo -e "\n${YELLOW}[1/3] Установка зависимостей сборки (jq, dkms, make, gcc, kernel-devel)...${NC}"
 sudo dnf install -y jq dkms make gcc kernel-devel
-echo -e "${GREEN}✔ Зависимости установлены.${NC}"
+echo -e "${GREEN}  ✔ Зависимости установлены.${NC}"
 
 WORK_DAMX="/tmp/damx_install"
 rm -rf "$WORK_DAMX"
 mkdir -p "$WORK_DAMX"
 
-LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 2 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
+LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
 
 if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
     echo -e "${YELLOW}[2/3] Найден локальный архив: $LOCAL_ARCHIVE${NC}"
@@ -51,13 +51,15 @@ fi
 echo -e "${YELLOW}[3/3] Распаковка и запуск установщика DAMX...${NC}"
 tar -xf "$WORK_DAMX/DAMX.tar.xz" -C "$WORK_DAMX"
 INSTALL_SCRIPT=$(find "$WORK_DAMX" -name "install.sh" | head -n 1)
+
 if [[ -z "$INSTALL_SCRIPT" ]]; then
     echo -e "${RED}Не найден install.sh внутри архива DAMX.${NC}"
     exit 1
 fi
+
 chmod +x "$INSTALL_SCRIPT"
 sudo bash "$INSTALL_SCRIPT"
 
 echo -e "\n${GREEN}======================================================================${NC}"
-echo -e "${GREEN}Установка DAMX завершена!${NC}"
+echo -e "${GREEN}  Установка DAMX завершена!${NC}"
 echo -e "${GREEN}======================================================================${NC}"

@@ -2,7 +2,7 @@
 set -e
 
 # ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
-# (Acer Nitro V 15). Автор не несёт ответственности за последствия его использования.
+# (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -20,31 +20,31 @@ sudo -v
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 echo -e "\n${CYAN}======================================================================${NC}"
-echo -e "${CYAN}  ЭТАП 2: КОДЕКИ, ИГРЫ, ОПТИМИЗАЦИИ И ТЕРМИНАЛ (FISH + KONSOLE)${NC}"
+echo -e "${CYAN}  ЭТАП 2: КОДЕКИ, STEAM, ОПТИМИЗАЦИИ И ТЕРМИНАЛ (FISH + KONSOLE)${NC}"
 echo -e "${CYAN}======================================================================${NC}"
 
 echo -e "\n${YELLOW}[1/8] Установка мультимедиа-кодеков (FFmpeg / GStreamer)...${NC}"
 sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing || true
 sudo dnf update -y @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin || true
-echo -e "${GREEN}✔ Мультимедиа-кодеки установлены.${NC}"
+echo -e "${GREEN}  ✔ Мультимедиа-кодеки установлены.${NC}"
 
-echo -e "${YELLOW}[2/8] Установка Steam, GameMode, Protontricks, Fish, Starship, Nano...${NC}"
+echo -e "${YELLOW}[2/8] Установка Steam, Fish, Starship, Nano, lf, bat, earlyoom и btrfsmaintenance...${NC}"
 sudo dnf install -y \
-    steam gamemode protontricks \
+    steam \
     fish starship nano lf bat \
     earlyoom btrfsmaintenance
-echo -e "${GREEN}✔ Игровые и системные пакеты установлены.${NC}"
+echo -e "${GREEN}  ✔ Игровые и системные пакеты установлены.${NC}"
 
 echo -e "${YELLOW}[3/8] Установка динамического планировщика system76-scheduler (COPR)...${NC}"
 sudo dnf copr enable -y kylegospo/system76-scheduler
 sudo dnf install -y system76-scheduler
 sudo systemctl enable --now com.system76.Scheduler.service
-echo -e "${GREEN}✔ Планировщик system76-scheduler активирован.${NC}"
+echo -e "${GREEN}  ✔ Планировщик system76-scheduler активирован.${NC}"
 
 echo -e "${YELLOW}[4/8] Активация защиты от зависаний earlyoom и таймера btrfs-scrub.timer...${NC}"
 sudo systemctl enable --now earlyoom
 sudo systemctl enable --now btrfs-scrub.timer
-echo -e "${GREEN}✔ Службы earlyoom и btrfs-scrub.timer включены.${NC}"
+echo -e "${GREEN}  ✔ Службы earlyoom и btrfs-scrub.timer включены.${NC}"
 
 echo -e "${YELLOW}[5/8] Настройка игрового буфера звука PipeWire и нативного Wayland...${NC}"
 mkdir -p "$HOME/.config/pipewire/pipewire.conf.d"
@@ -61,9 +61,9 @@ cat << 'EOF' > "$HOME/.config/environment.d/wayland.conf"
 ELECTRON_OZONE_PLATFORM_HINT=auto
 MOZ_ENABLE_WAYLAND=1
 EOF
-echo -e "${GREEN}✔ Конфиги PipeWire и Wayland применены.${NC}"
+echo -e "${GREEN}  ✔ Конфиги PipeWire и Wayland применены.${NC}"
 
-echo -e "${YELLOW}[6/8] Создание врапперов запуска дискретной NVIDIA (nvgame)...${NC}"
+echo -e "${YELLOW}[6/8] Создание враппера запуска дискретной NVIDIA (nvgame)...${NC}"
 sudo tee /usr/local/bin/nvgame > /dev/null << 'EOF'
 #!/bin/bash
 export __NV_PRIME_RENDER_OFFLOAD=1
@@ -72,14 +72,11 @@ export __GLX_VENDOR_LIBRARY_NAME=nvidia
 export __VK_LAYER_NV_optimus=NVIDIA_only
 exec gamemoderun "$@"
 EOF
-
-
 sudo chmod +x /usr/local/bin/nvgame
-echo -e "${GREEN}✔ Врапперы nvgame готовы.${NC}"
+echo -e "${GREEN}  ✔ Враппер nvgame готов.${NC}"
 
 echo -e "${YELLOW}[7/8] Настройка цветовой схемы Konsole Newbl1nk и профиля Fish...${NC}"
 mkdir -p "$HOME/.local/share/konsole"
-
 cat << 'EOF' > "$HOME/.local/share/konsole/Newbl1nk.colorscheme"
 [Background]
 Color=27,35,44
@@ -191,22 +188,23 @@ EOF
 
 if command -v kwriteconfig6 >/dev/null 2>&1; then
     kwriteconfig6 --file "$HOME/.config/konsolerc" --group "Desktop Entry" --key "DefaultProfile" "Fish.profile"
-else
+fi
+
+if ! grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null; then
     cat << 'EOF' > "$HOME/.config/konsolerc"
 [Desktop Entry]
 DefaultProfile=Fish.profile
 EOF
 fi
-echo -e "${GREEN}✔ Профиль Konsole Fish.profile и схема Newbl1nk применены.${NC}"
+echo -e "${GREEN}  ✔ Профиль Konsole Fish.profile и схема Newbl1nk применены.${NC}"
 
 echo -e "${YELLOW}[8/8] Настройка Starship (с русским временем), Fish и .nanorc...${NC}"
 mkdir -p "$HOME/.config/fish"
-
 cat << 'EOF' > "$HOME/.config/starship.toml"
 add_newline = false
 
 [character]
-success_symbol = "[·❯❯](bold green)"
+success_symbol = "[· ❯❯](bold green)"
 error_symbol = "[✗](bold red)[❯](bold yellow)[❯](bold green)"
 
 [cmd_duration]
@@ -230,7 +228,7 @@ conflicted = "🏳 "
 ahead = "🏎💨"
 behind = "😰"
 diverged = "😵"
-untracked = "🤷‍"
+untracked = "🤷"
 stashed = "📦 "
 modified = "📝"
 staged = '[++\($count\)](green)'
@@ -241,9 +239,11 @@ EOF
 cat << 'EOF' > "$HOME/.config/fish/config.fish"
 if status is-interactive
     set -g fish_greeting ""
+
     alias gpuinfo="nvidia-smi"
     alias upd="sudo dnf upgrade --refresh -y && flatpak update -y"
     alias clean="sudo dnf autoremove -y && sudo dnf clean all && flatpak uninstall --unused -y"
+
     starship init fish | source
 
     functions -c fish_prompt _starship_prompt
@@ -255,12 +255,12 @@ if status is-interactive
         else if test $s -ge 2
             set t (set_color --bold yellow)" время: "$s"с"(set_color normal)
         end
+
         set -l p (_starship_prompt)
         if test -n "$t" -a (count $p) -ge 2
             set p[1] "$p[1]$t"
         end
-        printf "%s
-" $p
+        printf "%s\n" $p
     end
 end
 EOF
@@ -277,10 +277,9 @@ set keycolor bold,green
 bind ^S savefile main
 include "/usr/share/nano/*.nanorc"
 EOF
-
 sudo cp "$HOME/.nanorc" /root/.nanorc
-echo -e "${GREEN}✔ Конфиги Starship, Fish и .nanorc записаны.${NC}"
+echo -e "${GREEN}  ✔ Конфиги Starship, Fish и .nanorc записаны.${NC}"
 
 echo -e "\n${GREEN}======================================================================${NC}"
-echo -e "${GREEN}Этап 2 завершён! Перезагрузите ноутбук перед установкой DAMX.${NC}"
+echo -e "${GREEN}  Этап 2 завершён! Перезагрузите ноутбук перед установкой DAMX.${NC}"
 echo -e "${GREEN}======================================================================${NC}"

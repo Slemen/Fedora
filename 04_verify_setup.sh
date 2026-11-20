@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
-# (Acer Nitro V 15). Автор не несёт ответственности за последствия его использования.
+# (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -26,11 +26,11 @@ else
 fi
 
 # 2. Ускорение DNF5
-if grep -q "max_parallel_downloads" /etc/dnf/dnf.conf 2>/dev/null; then
-    echo -e "[ ${GREEN}OK${NC} ] 2. Параллельная загрузка в DNF5 настроена"
+if grep -q "max_parallel_downloads=10" /etc/dnf/dnf.conf 2>/dev/null && grep -q "ip_resolve=4" /etc/dnf/dnf.conf 2>/dev/null; then
+    echo -e "[ ${GREEN}OK${NC} ] 2. Параллельная загрузка и сетевые лимиты DNF5 настроены"
     ((PASS++))
 else
-    echo -e "[ ${RED}FAIL${NC} ] 2. Оптимизация DNF5 не найдена"
+    echo -e "[ ${RED}FAIL${NC} ] 2. Оптимизация DNF5 не найдена или неполная"
     ((FAIL++))
 fi
 
@@ -43,14 +43,15 @@ else
     ((FAIL++))
 fi
 
-# 4. Лимиты кэша NVMe (CachyOS)
+# 4. Лимиты кэша NVMe и лимиты памяти для игр
 DIRTY=$(sysctl -n vm.dirty_bytes 2>/dev/null)
 DIRTY_BG=$(sysctl -n vm.dirty_background_bytes 2>/dev/null)
-if [[ "$DIRTY" == "268435456" && "$DIRTY_BG" == "67108864" ]]; then
-    echo -e "[ ${GREEN}OK${NC} ] 4. Лимиты записи кэша NVMe (dirty_bytes=$DIRTY, bg=$DIRTY_BG)"
+MAP_CNT=$(sysctl -n vm.max_map_count 2>/dev/null)
+if [[ "$DIRTY" == "268435456" && "$DIRTY_BG" == "67108864" && "$MAP_CNT" == "2147483642" ]]; then
+    echo -e "[ ${GREEN}OK${NC} ] 4. Лимиты NVMe (dirty_bytes=$DIRTY) и vm.max_map_count=$MAP_CNT активны"
     ((PASS++))
 else
-    echo -e "[ ${RED}FAIL${NC} ] 4. Лимиты записи кэша NVMe не применились"
+    echo -e "[ ${RED}FAIL${NC} ] 4. Лимиты NVMe или vm.max_map_count не применились"
     ((FAIL++))
 fi
 
@@ -65,14 +66,15 @@ else
     ((FAIL++))
 fi
 
-# 6. Сетевые буферы CachyOS
+# 6. Сетевые буферы CachyOS и BBR
 RMEM=$(sysctl -n net.core.rmem_max 2>/dev/null)
 WMEM=$(sysctl -n net.core.wmem_max 2>/dev/null)
-if [[ "$RMEM" == "16777216" && "$WMEM" == "16777216" ]]; then
-    echo -e "[ ${GREEN}OK${NC} ] 6. Расширенные сетевые буферы CachyOS активны (16 МБ)"
+CC=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)
+if [[ "$RMEM" == "16777216" && "$WMEM" == "16777216" && "$CC" == "bbr" ]]; then
+    echo -e "[ ${GREEN}OK${NC} ] 6. Сетевой стек BBR и буферы CachyOS (16 МБ) активны"
     ((PASS++))
 else
-    echo -e "[ ${RED}FAIL${NC} ] 6. Сетевые буферы не изменились"
+    echo -e "[ ${RED}FAIL${NC} ] 6. Сетевые буферы или BBR не применились"
     ((FAIL++))
 fi
 
@@ -121,12 +123,12 @@ else
     ((FAIL++))
 fi
 
-# 12. Игровой враппер nvgame и пакеты Steam / GameMode
+# 12. Игровой враппер nvgame, Steam и системный GameMode
 if [[ -x "/usr/local/bin/nvgame" ]] && command -v steam >/dev/null 2>&1 && command -v gamemoderun >/dev/null 2>&1; then
-    echo -e "[ ${GREEN}OK${NC} ] 12. Steam, врапперы nvgame и gamemode готовы"
+    echo -e "[ ${GREEN}OK${NC} ] 12. Steam, враппер nvgame и системный gamemode готовы"
     ((PASS++))
 else
-    echo -e "[ ${RED}FAIL${NC} ] 12. Отсутствуют врапперы nvgame или игровые пакеты"
+    echo -e "[ ${RED}FAIL${NC} ] 12. Отсутствуют враппер nvgame, Steam или gamemoderun"
     ((FAIL++))
 fi
 
@@ -140,7 +142,7 @@ else
 fi
 
 # 14. Тема Konsole Newbl1nk и профиль Fish
-if [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" && -f "$HOME/.local/share/konsole/Fish.profile" ]] && grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null; then
+if [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" && -f "$HOME/.local/share/konsole/Fish.profile" ]] && grep -Eq "DefaultProfile[[:space:]]*=[[:space:]]*Fish\.profile" "$HOME/.config/konsolerc" 2>/dev/null; then
     echo -e "[ ${GREEN}OK${NC} ] 14. Цветовая схема Konsole Newbl1nk и профиль Fish.profile активны"
     ((PASS++))
 else
