@@ -1,54 +1,51 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Интерактивное меню автоустановки и настройки Fedora KDE для Acer Nitro V15-51
-# Репозиторий: https://github.com/Slemen/Fedora
-# Дисклеймер: Скрипт создан для личных нужд и конкретного железа (Acer Nitro V15-51).
-# Автор не несёт ответственности за последствия его использования на других системах.
-# ==============================================================================
 set -euo pipefail
 
-if [[ $EUID -eq 0 ]]; then
-    echo "Ошибка: Запускайте меню от имени обычного пользователя (без sudo)."
-    exit 1
-fi
+# ==============================================================================
+# ДИСКЛЕЙМЕР:
+# Данные скрипты и конфигурации созданы исключительно под личные нужды автора
+# и конкретное оборудование ноутбука Acer Nitro V15-51 (Fedora KDE).
+# Автор не несёт ответственности за возможные сбои или потерю данных при их
+# использовании на других системах. Используйте на свой страх и риск.
+# ==============================================================================
 
 REPO_RAW="https://raw.githubusercontent.com/Slemen/Fedora/main"
+TMP_DIR="/tmp/fedora_slemen_post"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TMP_WORK="/tmp/fedora_slemen_post"
 
 cleanup() {
-    rm -rf "$TMP_WORK"
+    rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
 
 run_step() {
-    local script_name="$1"
-    if [[ -f "$SCRIPT_DIR/$script_name" ]]; then
-        echo "Запуск локального скрипта: $SCRIPT_DIR/$script_name"
-        bash "$SCRIPT_DIR/$script_name"
+    local file="$1"
+    if [[ -f "$SCRIPT_DIR/$file" ]]; then
+        echo ">>> Запуск локального скрипта: $file"
+        bash "$SCRIPT_DIR/$file" </dev/tty
     else
-        mkdir -p "$TMP_WORK"
-        echo "Загрузка $script_name с GitHub..."
-        curl -fsSL "$REPO_RAW/$script_name" -o "$TMP_WORK/$script_name"
-        chmod +x "$TMP_WORK/$script_name"
-        bash "$TMP_WORK/$script_name"
-        rm -rf "$TMP_WORK"
+        mkdir -p "$TMP_DIR"
+        echo ">>> Загрузка $file с GitHub..."
+        curl -fsSL "$REPO_RAW/$file" -o "$TMP_DIR/$file"
+        chmod +x "$TMP_DIR/$file"
+        bash "$TMP_DIR/$file" </dev/tty
+        rm -f "$TMP_DIR/$file"
     fi
 }
 
 while true; do
-    clear
-    echo "=============================================================================="
-    echo "      Автоустановка и настройка Fedora KDE для Acer Nitro V15-51 (v51)"
-    echo "=============================================================================="
-    echo "  1) Этап 1: Базовая настройка DNF5, RPM Fusion, драйвер NVIDIA и sysctl"
-    echo "  2) Этап 2: Кодеки, Steam, службы, nvgame (кэш 10 ГБ), Fish и Starship"
-    echo "  3) Этап 3: Установка драйвера linuwu_sense и Div Acer Manager Max (DAMX)"
-    echo "  4) Этап 4: Комплексная диагностика системы (18 пунктов)"
-    echo "  5) Перезагрузить ноутбук сейчас"
-    echo "  0) Выход (с очисткой временных файлов)"
-    echo "=============================================================================="
-    read -rp "Выберите пункт меню [0-5]: " choice </dev/tty
+    clear || true
+    echo "=================================================================="
+    echo " Автоустановка и настройка Fedora KDE для Acer Nitro V15-51 (v51)"
+    echo "=================================================================="
+    echo " 1) Этап 1: DNF5, RPM Fusion, драйвер NVIDIA, Timeshift, sysctl"
+    echo " 2) Этап 2: Кодеки, Steam, оптимизации, nvgame (10 ГБ), Fish/Starship"
+    echo " 3) Этап 3: Установка Div Acer Manager Max (DAMX) и linuwu_sense"
+    echo " 4) Этап 4: Полная диагностика системы (18 проверок)"
+    echo " 5) Перезагрузить ноутбук"
+    echo " 0) Выход (с очисткой временных файлов)"
+    echo "=================================================================="
+    read -rp "Выберите пункт [0-5]: " choice </dev/tty
 
     case "$choice" in
         1) run_step "01_base_and_nvidia.sh"; read -rp "Нажмите Enter для возврата в меню..." </dev/tty ;;
