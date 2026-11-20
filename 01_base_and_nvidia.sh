@@ -1,88 +1,72 @@
 #!/usr/bin/env bash
-set -e
-
-# ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
-# (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
-
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-RED='\033[0;31m'
-NC='\033[0m'
+# ==============================================================================
+# Этап 1: Базовая настройка Fedora KDE, DNF5, RPM Fusion, драйвер NVIDIA и sysctl
+# Оборудование: Acer Nitro V15-51
+# Дисклеймер: Скрипт создан для личных нужд и конкретного железа (Acer Nitro V15-51).
+# Автор не несёт ответственности за последствия его использования на других системах.
+# ==============================================================================
+set -euo pipefail
 
 if [[ $EUID -eq 0 ]]; then
-    echo -e "${RED}Запускайте скрипт от обычного пользователя (sudo запросится автоматически).${NC}"
+    echo "Ошибка: Запускайте скрипт от имени обычного пользователя (без sudo)."
     exit 1
 fi
 
-echo -e "${CYAN}Для настройки базовой системы и драйверов NVIDIA требуются права администратора.${NC}"
-sudo -v
-while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+echo "=== [1/5] Ускорение пакетного менеджера DNF5 ==="
+sudo tee /etc/dnf/dnf.conf > /dev/null << 'EOF'
+[main]
+gpgcheck=True
+installonly_limit=3
+clean_requirements_on_remove=True
+best=False
+skip_if_unavailable=True
+max_parallel_downloads=10
+fastestmirror=True
+defaultyes=True
+timeout=30
+ip_resolve=4
+EOF
 
-echo -e "\n${CYAN}======================================================================${NC}"
-echo -e "${CYAN}  ЭТАП 1: DNF5, RPM FUSION, ОБНОВЛЕНИЕ СИСТЕМЫ, NVIDIA И SYSCTL${NC}"
-echo -e "${CYAN}======================================================================${NC}"
-
-echo -e "\n${YELLOW}[1/6] Ускорение пакетного менеджера DNF5...${NC}"
-for param in "max_parallel_downloads=10" "fastestmirror=True" "defaultyes=True" "timeout=30" "ip_resolve=4"; do
-    key="${param%%=*}"
-    if ! grep -q "^${key}=" /etc/dnf/dnf.conf; then
-        echo "$param" | sudo tee -a /etc/dnf/dnf.conf > /dev/null
-    fi
-done
-echo -e "${GREEN}  ✔ DNF5 настроен.${NC}"
-
-echo -e "${YELLOW}[2/6] Подключение репозиториев RPM Fusion (Free и Nonfree)...${NC}"
-sudo dnf install -y \
-    "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
-    "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
-echo -e "${GREEN}  ✔ RPM Fusion подключён.${NC}"
-
-echo -e "${YELLOW}[3/6] Полное обновление системы и ядра (--refresh)...${NC}"
+echo "=== [2/5] Подключение RPM Fusion (Free и Nonfree) и обновление системы ==="
+FEDORA_VER=$(rpm -E %fedora)
+sudo dnf install -y     "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm"     "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"
 sudo dnf upgrade --refresh -y
-echo -e "${GREEN}  ✔ Система обновлена.${NC}"
 
-echo -e "${YELLOW}[4/6] Установка Timeshift, заголовков ядра и драйвера NVIDIA...${NC}"
-sudo dnf install -y timeshift kernel-devel kernel-headers akmod-nvidia xorg-x11-drv-nvidia-cuda vulkan
-echo -e "${GREEN}  ✔ Пакеты NVIDIA и Timeshift установлены.${NC}"
+echo "=== [3/5] Установка Timeshift, драйвера NVIDIA, CUDA и инструментов сборки ==="
+sudo dnf install -y     timeshift     akmod-nvidia     xorg-x11-drv-nvidia-cuda     xorg-x11-drv-nvidia-cuda-libs     vulkan-loader     vulkan-tools     kernel-devel     kernel-headers     dkms     gcc     make     git     curl     wget
 
-echo -e "${YELLOW}[5/6] Применение ядерных оптимизаций sysctl (CachyOS / BBR) и блокировка iTCO_wdt...${NC}"
+echo "=== [4/5] Применение ядерных твиков sysctl (NVMe, ZRAM, BBR, память) ==="
 echo "tcp_bbr" | sudo tee /etc/modules-load.d/bbr.conf > /dev/null
-sudo modprobe tcp_bbr 2>/dev/null || true
+sudo modprobe tcp_bbr || true
 
 sudo tee /etc/sysctl.d/99-cachyos-tweaks.conf > /dev/null << 'EOF'
+vm.swappiness = 100
+vm.vfs_cache_pressure = 50
 vm.dirty_bytes = 268435456
 vm.dirty_background_bytes = 67108864
-vm.dirty_writeback_centisecs = 1500
 vm.page-cluster = 0
-vm.vfs_cache_pressure = 50
 vm.max_map_count = 2147483642
 fs.file-max = 2097152
-kernel.nmi_watchdog = 0
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
-net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216
 net.core.netdev_max_backlog = 16384
 EOF
 sudo sysctl --system > /dev/null
 
+echo "=== [5/5] Блокировка аппаратного таймера iTCO_wdt ==="
 sudo tee /etc/modprobe.d/watchdog.conf > /dev/null << 'EOF'
-blacklist iTCO_vendor_support
 blacklist iTCO_wdt
-install iTCO_vendor_support /bin/true
+blacklist iTCO_vendor_support
 install iTCO_wdt /bin/true
+install iTCO_vendor_support /bin/true
 EOF
 
-if command -v grubby >/dev/null 2>&1; then
-    sudo grubby --update-kernel=ALL --args="modprobe.blacklist=iTCO_wdt,iTCO_vendor_support" >/dev/null 2>&1 || true
+if command -v grubby &>/dev/null; then
+    sudo grubby --update-kernel=ALL --args="modprobe.blacklist=iTCO_wdt,iTCO_vendor_support" || true
 fi
-echo -e "${GREEN}  ✔ Параметры sysctl, BBR и блокировка watchdog.conf применены.${NC}"
 
-echo -e "${YELLOW}[6/6] Ожидание завершения фоновой сборки модуля ядра NVIDIA (akmods)...${NC}"
-sudo akmods --force
-echo -e "${GREEN}  ✔ Модуль ядра NVIDIA готов.${NC}"
-
-echo -e "\n${GREEN}======================================================================${NC}"
-echo -e "${GREEN}  Этап 1 завершён! Обязательно перезагрузите ноутбук (sudo reboot).${NC}"
-echo -e "${GREEN}======================================================================${NC}"
+echo ""
+echo "=============================================================================="
+echo "Этап 1 завершён! Обязательно перезагрузите ноутбук перед запуском Этапа 2."
+echo "Примечание: Подождите 2-3 минуты перед перезагрузкой, пока akmods соберёт модуль NVIDIA."
+echo "=============================================================================="

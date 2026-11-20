@@ -1,28 +1,19 @@
 ================================================================================
-ФИНАЛЬНЫЙ ЧЕК-ЛИСТ УСТАНОВКИ И ОПТИМИЗАЦИИ FEDORA KDE (ВЕРСИЯ v51)
+ЧЕК-ЛИСТ УСТАНОВКИ И НАСТРОЙКИ FEDORA KDE (ВЕРСИЯ v51 FINAL)
 Оборудование: Acer Nitro V15-51
+Дисклеймер: Создано для личных нужд и ноутбука Acer Nitro V15-51.
 ================================================================================
 
-[ДИСКЛЕЙМЕР АВТОРА]
-Данный чек-лист и сопутствующие скрипты созданы исключительно под мои личные
-потребности и конфигурацию ноутбука Acer Nitro V15-51. Автор не несёт никакой
-ответственности за возможные сбои или потерю данных при использовании на другом
-оборудовании.
+[ ] 0. ПОДГОТОВКА И КОМАНДЫ ЗАПУСКА
+    - В BIOS выключен Secure Boot (для модулей akmod-nvidia и linuwu_sense).
+    - Разметка Btrfs использует стандартные подразделы @ и @home (для Timeshift).
+    - Основная команда запуска:
+      curl -fsSL slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
+    - Резервная команда запуска:
+      curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh
 
 --------------------------------------------------------------------------------
-ЭТАП 0. БЫСТРЫЙ ЗАПУСК ЧЕРЕЗ GITHUB (ИНТЕРАКТИВНОЕ МЕНЮ)
---------------------------------------------------------------------------------
-Для Bash:
-  curl -fsSL https://slemen.github.io/Fedora/go | bash
-
-Для Fish:
-  curl -fsSL https://slemen.github.io/Fedora/go | fish
-
-Локальный запуск из ~/Документы/Fedora_kde_nitro_setup:
-  ./install.sh
-
---------------------------------------------------------------------------------
-ЭТАП 1. СИСТЕМНАЯ БАЗА, DNF5, ДРАЙВЕР NVIDIA И ЯДРО (01_base_and_nvidia.sh)
+ЭТАП 1: БАЗОВАЯ НАСТРОЙКА И ДРАЙВЕР NVIDIA (01_base_and_nvidia.sh)
 --------------------------------------------------------------------------------
 [ ] 1.1. Ускорение пакетного менеджера DNF5 (/etc/dnf/dnf.conf):
     - max_parallel_downloads=10
@@ -30,76 +21,44 @@
     - defaultyes=True
     - timeout=30
     - ip_resolve=4
-
-[ ] 1.2. Подключение репозиториев RPM Fusion (Free и Nonfree) + обновление кэша:
-    - sudo dnf upgrade --refresh -y
-
-[ ] 1.3. Установка Timeshift для создания снимков системы Btrfs перед изменениями.
-
-[ ] 1.4. Установка проприетарного драйвера NVIDIA и зависимостей:
-    - akmod-nvidia, xorg-x11-drv-nvidia-cuda, vulkan
-
-[ ] 1.5. Ядерные твики sysctl из CachyOS (/etc/sysctl.d/99-cachyos-tweaks.conf):
-    - Лимиты кэша записи NVMe: vm.dirty_bytes=268435456, vm.dirty_background_bytes=67108864
-    - Оптимизация ZRAM и отключение NMI Watchdog: vm.page-cluster=0, kernel.nmi_watchdog=0
-    - Сетевой стек BBR и расширенные буферы: net.ipv4.tcp_congestion_control=bbr,
-      net.core.rmem_max=16777216, net.core.wmem_max=16777216
-    - Увеличение лимитов для игр и Proton: vm.max_map_count=2147483642, fs.file-max=2097152
-
-[ ] 1.6. Блокировка аппаратного таймера Intel Watchdog (/etc/modprobe.d/watchdog.conf и grubby):
-    - blacklist iTCO_wdt, install iTCO_wdt /bin/true, modprobe.blacklist=iTCO_wdt,iTCO_vendor_support
-
-[ ] 1.7. Обязательная перезагрузка после сборки модуля ядра NVIDIA и блокировки iTCO_wdt.
+[ ] 1.2. Подключение репозиториев RPM Fusion (Free и Nonfree) и обновление пакетов.
+[ ] 1.3. Установка Timeshift, akmod-nvidia, CUDA, Vulkan и инструментов сборки ядра.
+[ ] 1.4. Применение ядерных твиков sysctl (/etc/sysctl.d/99-cachyos-tweaks.conf):
+    - Оптимизация ZRAM и кэша NVMe (vm.swappiness=100, vm.vfs_cache_pressure=50)
+    - Сетевой стек BBR (net.core.default_qdisc=fq, net.ipv4.tcp_congestion_control=bbr)
+    - Лимиты памяти и файлов (vm.max_map_count=2147483642, fs.file-max=2097152)
+[ ] 1.5. Блокировка аппаратного таймера iTCO_wdt (modprobe.d + grubby).
+[ ] 1.6. ПЕРЕЗАГРУЗКА СИСТЕМЫ + создание первого снимка в Timeshift.
 
 --------------------------------------------------------------------------------
-ЭТАП 2. СОФТ, ИГРОВОЕ ОКРУЖЕНИЕ И ТЕРМИНАЛ (02_software_and_env.sh)
+ЭТАП 2: СОФТ, ИГРОВОЕ ОКРУЖЕНИЕ И ТЕРМИНАЛ (02_software_and_env.sh)
 --------------------------------------------------------------------------------
-[ ] 2.1. Мультимедиа и кодеки:
-    - Полная замена ffmpeg-free на полноценный ffmpeg, gstreamer1-plugins-*
-    - Аппаратное ускорение видео VA-API / VDPAU
-
-[ ] 2.2. Игровые пакеты (без MangoHud; gamemode используется системный):
-    - steam
-
-[ ] 2.3. Службы оптимизации производительности и Btrfs:
-    - system76-scheduler (COPR): динамический приоритет активных окон и игр
-    - earlyoom: защита от полного зависания системы при нехватке ОЗУ/ZRAM
-    - btrfsmaintenance: ежемесячная проверка целостности Btrfs (btrfs-scrub.timer)
-
-[ ] 2.4. Игровой звук PipeWire (~/.config/pipewire/pipewire.conf.d/99-gaming-audio.conf):
-    - Фиксация минимального кванта буфера (default.clock.min-quantum = 1024) против треска
-
-[ ] 2.5. Нативный Wayland для Electron и браузеров (~/.config/environment.d/wayland.conf):
-    - ELECTRON_OZONE_PLATFORM_HINT=auto, MOZ_ENABLE_WAYLAND=1
-
-[ ] 2.6. Игровой враппер дискретной графики NVIDIA (/usr/local/bin/nvgame):
-    - nvgame <команда> : запуск через NVIDIA PRIME Render Offload + системный gamemoderun
-
-[ ] 2.7. Полная настройка терминала:
-    - Konsole: цветовая схема Newbl1nk и профиль по умолчанию Fish.profile (kwriteconfig6)
-    - Оболочка Fish (~/.config/fish/config.fish) с алиасами:
-      * gpuinfo — статус видеокарты NVIDIA и драйвера
-      * upd — полное обновление системы (DNF + Flatpak)
-      * clean — очистка кэша пакетов и неиспользуемых зависимостей
-    - Промпт Starship (~/.config/starship.toml) + кастомный индикатор времени в fish_prompt:
-      * Отображение "время: Xс" (или "Xм Yс") от 2 секунд выполнения команды
-    - Редактор nano: настроенные ~/.nanorc и /root/.nanorc (подсветка, нумерация строк)
+[ ] 2.1. Замена ffmpeg-free на полный ffmpeg + установка кодеков gstreamer1 и lame.
+[ ] 2.2. Установка Steam (без лишних утилит; gamemode используется системный из Fedora).
+[ ] 2.3. Включение служб: system76-scheduler, earlyoom, btrfs-scrub@-.timer.
+[ ] 2.4. Настройка PipeWire (quantum=1024), Wayland и враппера /usr/local/bin/nvgame:
+    - Рендер на дискретной NVIDIA (__NV_PRIME_RENDER_OFFLOAD=1) + системный gamemoderun
+    - Кэш шейдеров на NVMe до 10 ГБ (__GL_SHADER_DISK_CACHE_SIZE=10737418240) без автоочистки
+    - Многопоточность OpenGL/DXVK (__GL_THREADED_OPTIMIZATIONS=1) и буфер звука 60 мс
+    - Отключение лишних неявных слоёв Vulkan (VK_LOADER_LAYERS_DISABLE="~implicit~")
+[ ] 2.5. Настройка Fish (~/.config/fish/config.fish) и Starship (~/.config/starship.toml):
+    - Алиасы: gpuinfo, upd, clean
+    - Встроенный индикатор времени выполнения команд в fish_prompt (от 2000 мс: "время: Xс")
+[ ] 2.6. Профиль Konsole (тема Newbl1nk + оболочка Fish) и конфиг редактора Nano (~/.nanorc).
+[ ] 2.7. ПЕРЕЗАГРУЗКА СИСТЕМЫ.
 
 --------------------------------------------------------------------------------
-ЭТАП 3. УПРАВЛЕНИЕ ВЕНТИЛЯТОРАМИ И БАТАРЕЕЙ ACER NITRO (03_install_damx.sh)
+ЭТАП 3: УПРАВЛЕНИЕ ОХЛАЖДЕНИЕМ И ПИТАНИЕМ ACER (03_install_damx.sh)
 --------------------------------------------------------------------------------
-[ ] 3.1. Установка модуля ядра linuwu_sense и интерфейса DAMX (Div Acer Manager Max):
-    - Поиск локального архива в ~/Документы (или ~/Documents) либо загрузка с GitHub
-    - Управление режимами питания (Тихий / Сбалансированный / Производительный)
-    - Настройка кривой вентиляторов и лимита заряда батареи (80%)
+[ ] 3.1. Поиск локального архива DAMX-*.tar.xz в ~/Документы (или ~/Documents) либо скачивание с GitHub.
+[ ] 3.2. Установка модуля ядра linuwu_sense и приложения Div Acer Manager Max (DAMX).
 
 --------------------------------------------------------------------------------
-ЭТАП 4. ФИНАЛЬНАЯ КОМПЛЕКСНАЯ ДИАГНОСТИКА (04_verify_setup.sh)
+ЭТАП 4: ФИНАЛЬНАЯ ДИАГНОСТИКА И НАСТРОЙКА STEAM (04_verify_setup.sh)
 --------------------------------------------------------------------------------
-[ ] 4.1. Запуск финальной проверки из 18 пунктов:
-    - Драйвер NVIDIA, CUDA, Vulkan, Steam, системный GameMode, DAMX (linuwu_sense)
-    - Буфер PipeWire, Wayland, враппер nvgame, блокировка iTCO_wdt
-    - Лимиты NVMe, ZRAM, сетевые буферы BBR, system76-scheduler, earlyoom, btrfs-scrub.timer
-    - Konsole (Newbl1nk + Fish.profile), Fish, Starship (русский формат времени), .nanorc
-    - Проверка отсутствия упавших системных служб (systemctl --failed)
+[ ] 4.1. Запуск скрипта диагностики (проверка всех 18 пунктов на статус [ OK ], включая nvgame 10 ГБ).
+[ ] 4.2. В Steam для World of Tanks Blitz:
+    - Параметры запуска: nvgame %command%
+    - Совместимость: Proton Experimental
+    - Включено предварительное кэширование шейдеров Vulkan
 ================================================================================
