@@ -87,7 +87,7 @@ else
 fi
 
 # 10. Службы оптимизации
-if systemctl is-active --quiet system76-scheduler && systemctl is-active --quiet earlyoom; then
+if systemctl is-active --quiet com.system76.Scheduler.service && systemctl is-active --quiet earlyoom.service; then
     ok "10. Службы system76-scheduler и earlyoom запущены"
 else
     fail "10. Одна из служб (system76-scheduler / earlyoom) не активна"
