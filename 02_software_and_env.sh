@@ -49,12 +49,13 @@ echo -e "${CYAN}================================================================
 STEP="установка мультимедиа-кодеков"
 echo -e "\n${YELLOW}[1/6] Установка полных мультимедиа-кодеков (FFmpeg, GStreamer)...${NC}"
 sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
-sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly libva-nvidia-driver
+sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly libva-nvidia-driver libva-utils vdpauinfo glx-utils
 
 STEP="установка Steam и планировщиков"
 echo -e "\n${YELLOW}[2/6] Установка чистого Steam, system76-scheduler и earlyoom...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
-sudo dnf install -y steam system76-scheduler earlyoom fish nano-default-editor unzip kate
+sudo dnf install -y steam system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
+
 
 STEP="включение системных служб оптимизации"
 echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub.timer...${NC}"
