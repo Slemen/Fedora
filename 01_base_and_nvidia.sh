@@ -69,7 +69,7 @@ sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1 || true
 STEP="обновление системы и установка Timeshift / Btrfs-Assistant"
 echo -e "\n${YELLOW}[3/6] Обновление системы и установка утилит снимков Btrfs...${NC}"
 sudo dnf upgrade -y --refresh
-sudo dnf install -y timeshift btrfs-assistant
+sudo dnf install -y timeshift
 
 STEP="установка проприетарного драйвера NVIDIA и Vulkan"
 echo -e "\n${YELLOW}[4/6] Установка проприетарного драйвера NVIDIA, CUDA и Vulkan...${NC}"
