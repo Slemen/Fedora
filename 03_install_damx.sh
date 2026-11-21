@@ -57,7 +57,8 @@ LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -n
 if [[ -z "$LOCAL_ARCHIVE" || ! -f "$LOCAL_ARCHIVE" ]]; then
     echo -e "${RED}Архив DAMX-*.tar.xz не найден в ~/Документы (или ~/Documents).${NC}"
     echo -e "${YELLOW}Скачайте его вручную со страницы релизов:${NC}"
-    echo -e "${CYAN}https://github.com{NC}"
+    REPO_URL="PXDiv/Div-Acer-Manager-Max"
+    echo -e "${CYAN}https://github.com/PXDiv/Div-Acer-Manager-Max/releases
     echo -e "${YELLOW}Положите скачанный файл в папку ~/Документы и запустите Этап 3 снова.${NC}"
     exit 1
 fi
