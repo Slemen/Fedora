@@ -7,10 +7,14 @@ set -euo pipefail
 # ==============================================================================
 
 TARGET="/tmp/slemen_fedora_install.sh"
-URL="https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh"
+URL="https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh?t=$(date +%s)"
 
-trap 'rm -f "$TARGET"' EXIT
+cleanup() {
+    rm -f "$TARGET"
+    [[ "${BASH_SOURCE[0]}" == /tmp/* ]] && rm -f "${BASH_SOURCE[0]}"
+}
+trap cleanup EXIT
 
-curl -fsSL "$URL" -o "$TARGET"
+curl -fsSL --retry 3 --retry-delay 2 "$URL" -o "$TARGET"
 chmod +x "$TARGET"
 bash "$TARGET" </dev/tty

@@ -19,6 +19,7 @@ WORK_DIR="/tmp/fedora_slemen_post"
 
 cleanup() {
     rm -rf "$WORK_DIR"
+    [[ "${BASH_SOURCE[0]}" == /tmp/* ]] && rm -f "${BASH_SOURCE[0]}"
 }
 trap cleanup EXIT
 
@@ -30,7 +31,7 @@ run_step() {
         bash "${SCRIPT_DIR}/${script_name}" </dev/tty
     else
         echo -e "${CYAN}Загрузка с GitHub: ${script_name}${NC}"
-        curl -fsSL "${REPO_RAW}/${script_name}" -o "${WORK_DIR}/${script_name}"
+        curl -fsSL --retry 3 --retry-delay 2 "${REPO_RAW}/${script_name}?t=$(date +%s)" -o "${WORK_DIR}/${script_name}"
         chmod +x "${WORK_DIR}/${script_name}"
         bash "${WORK_DIR}/${script_name}" </dev/tty
         rm -f "${WORK_DIR}/${script_name}"
@@ -39,15 +40,19 @@ run_step() {
 
 while true; do
     clear
+    S1="[ ]"; command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && S1="${GREEN}[✓]${NC}"
+    S2="[ ]"; [[ -x /usr/local/bin/nvgame ]] && S2="${GREEN}[✓]${NC}"
+    S3="[ ]"; (command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]] || systemctl list-unit-files | grep -qi "damx") && S3="${GREEN}[✓]${NC}"
+
     echo -e "${CYAN}======================================================================${NC}"
-    echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v52)       ${NC}"
+    echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v55)       ${NC}"
     echo -e "${CYAN}======================================================================${NC}"
-    echo -e "  ${GREEN}1)${NC} Этап 1: База, RPM Fusion, Timeshift, NVIDIA, sysctl"
-    echo -e "  ${GREEN}2)${NC} Этап 2: Кодеки, Steam, nvgame (кэш 10 ГБ + DXVK), PipeWire, Fish"
-    echo -e "  ${GREEN}3)${NC} Этап 3: Установка Div Acer Manager Max (DAMX — кулеры и батарея)"
-    echo -e "  ${GREEN}4)${NC} Этап 4: Полная диагностика и проверка системы (18 пунктов)"
-    echo -e "  ${YELLOW}5)${NC} Перезагрузить ноутбук (обязательно после Этапа 1 и Этапа 2)"
-    echo -e "  ${RED}0)${NC} Выход"
+    echo -e "  ${GREEN}1)${NC} ${S1} Этап 1: База, RPM Fusion, Timeshift, NVIDIA, sysctl, udev, SSD"
+    echo -e "  ${GREEN}2)${NC} ${S2} Этап 2: Кодеки, Steam, GameMode, nvgame, PipeWire и Fish"
+    echo -e "  ${GREEN}3)${NC} ${S3} Этап 3: Установка Div Acer Manager Max (DAMX — кулеры и батарея)"
+    echo -e "  ${GREEN}4)${NC}     Этап 4: Полная диагностика и проверка системы (20 пунктов)"
+    echo -e "  ${YELLOW}5)${NC}     Перезагрузить ноутбук (обязательно после Этапа 1 и Этапа 2)"
+    echo -e "  ${RED}0)${NC}     Выход"
     echo -e "${CYAN}======================================================================${NC}"
     read -rp "Выберите пункт [0-5]: " choice </dev/tty
 

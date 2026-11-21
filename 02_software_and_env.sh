@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# ЭТАП 2: МУЛЬТИМЕДИА, STEAM, NVGAME (10 ГБ + DXVK), PIPEWIRE И ТЕРМИНАЛ
+# ЭТАП 2: МУЛЬТИМЕДИА, STEAM, GAMEMODE, NVGAME, PIPEWIRE И ТЕРМИНАЛ
 # ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
 # (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
 # ==============================================================================
@@ -43,19 +43,19 @@ sudo -v
 SUDO_PID=$!
 
 echo -e "${CYAN}======================================================================${NC}"
-echo -e "${CYAN}  ЭТАП 2: КОДЕКИ, STEAM, NVGAME И ТЕРМИНАЛ (ACER NITRO V15-51)        ${NC}"
+echo -e "${CYAN}  ЭТАП 2: КОДЕКИ, STEAM, GAMEMODE, NVGAME И ТЕРМИНАЛ (NITRO V15-51)   ${NC}"
 echo -e "${CYAN}======================================================================${NC}"
 
-STEP="установка мультимедиа-кодеков"
-echo -e "\n${YELLOW}[1/6] Установка полных мультимедиа-кодеков (FFmpeg, GStreamer)...${NC}"
+STEP="установка мультимедиа-кодеков и утилит видеодиагностики"
+echo -e "\n${YELLOW}[1/6] Установка полных мультимедиа-кодеков и утилит VA-API / GLX...${NC}"
 sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly libva-nvidia-driver libva-utils vdpauinfo glx-utils
 
-STEP="установка Steam и планировщиков"
-echo -e "\n${YELLOW}[2/6] Установка чистого Steam, system76-scheduler и earlyoom...${NC}"
+STEP="установка Steam, GameMode, планировщиков и словарей орфографии"
+echo -e "\n${YELLOW}[2/6] Установка Steam, GameMode, system76-scheduler, earlyoom и словарей...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
-sudo dnf install -y steam system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
-
+sudo dnf install -y steam gamemode system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
+sudo usermod -aG gamemode "$USER" 2>/dev/null || true
 
 STEP="включение системных служб оптимизации"
 echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub.timer...${NC}"
@@ -81,6 +81,7 @@ EOF
 cat << 'EOF' > "$HOME/.config/environment.d/wayland-nvidia.conf"
 ELECTRON_OZONE_PLATFORM_HINT=auto
 MOZ_ENABLE_WAYLAND=1
+NVD_BACKEND=direct
 EOF
 
 # Исключение каталога Steam из индексации файлов KDE Baloo (защита от фоновых фризов)
@@ -114,15 +115,28 @@ exec gamemoderun "$@"
 EOF
 sudo chmod +x /usr/local/bin/nvgame
 
-STEP="установка Starship, шрифта JetBrains Mono и настройка Fish / Konsole / Nano"
-echo -e "\n${YELLOW}[5/6] Установка Starship, JetBrains Mono и настройка Fish + Konsole...${NC}"
+STEP="установка Starship, шрифта JetBrainsMono Nerd Font и настройка Fish / Konsole / Nano"
+echo -e "\n${YELLOW}[5/6] Установка Starship, JetBrainsMono Nerd Font и настройка Fish + Konsole...${NC}"
 if ! command -v starship >/dev/null 2>&1; then
     sudo dnf copr enable -y atim/starship
     sudo dnf install -y starship
 fi
 
 sudo dnf install -y jetbrains-mono-fonts-all
+mkdir -p "$HOME/.local/share/fonts/JetBrainsMonoNerd"
+if ! fc-list : family | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+    curl -fsSL --retry 3 "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" -o /tmp/JetBrainsMonoNerd.zip || true
+    if [[ -f /tmp/JetBrainsMonoNerd.zip ]]; then
+        unzip -oq /tmp/JetBrainsMonoNerd.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNerd" "*.ttf" 2>/dev/null || true
+        rm -f /tmp/JetBrainsMonoNerd.zip
+    fi
+fi
 fc-cache -f >/dev/null 2>&1 || true
+
+FONT_NAME="JetBrains Mono"
+if fc-list : family | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+    FONT_NAME="JetBrainsMono Nerd Font"
+fi
 
 mkdir -p "$HOME/.config/fish/functions" "$HOME/.local/share/konsole"
 
@@ -264,10 +278,10 @@ Opacity=1
 Wallpaper=
 EOF
 
-cat << 'EOF' > "$HOME/.local/share/konsole/Fish.profile"
+cat << EOF > "$HOME/.local/share/konsole/Fish.profile"
 [Appearance]
 ColorScheme=Newbl1nk
-Font=JetBrains Mono,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+Font=${FONT_NAME},11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
 
 [General]
 Command=/usr/bin/fish

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# ЭТАП 1: БАЗОВАЯ НАСТРОЙКА, RPM FUSION, TIMESHIFT, NVIDIA И SYSCTL
+# ЭТАП 1: БАЗОВАЯ НАСТРОЙКА, RPM FUSION, TIMESHIFT, NVIDIA, SYSCTL, UDEV И SSD
 # ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
 # (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
 # ==============================================================================
@@ -47,7 +47,7 @@ echo -e "${CYAN}  ЭТАП 1: БАЗОВАЯ НАСТРОЙКА, NVIDIA И ЯД�
 echo -e "${CYAN}======================================================================${NC}"
 
 STEP="оптимизация DNF5"
-echo -e "\n${YELLOW}[1/6] Ускорение пакетного менеджера DNF5...${NC}"
+echo -e "\n${YELLOW}[1/8] Ускорение пакетного менеджера DNF5...${NC}"
 DNF_CONF="/etc/dnf/dnf.conf"
 for param in "max_parallel_downloads=10" "fastestmirror=True" "defaultyes=True" "timeout=30" "ip_resolve=4"; do
     key="${param%%=*}"
@@ -59,7 +59,7 @@ for param in "max_parallel_downloads=10" "fastestmirror=True" "defaultyes=True" 
 done
 
 STEP="подключение репозиториев RPM Fusion"
-echo -e "\n${YELLOW}[2/6] Подключение репозиториев RPM Fusion (Free и Nonfree)...${NC}"
+echo -e "\n${YELLOW}[2/8] Подключение репозиториев RPM Fusion (Free и Nonfree)...${NC}"
 FEDORA_VER=$(rpm -E %fedora)
 sudo dnf install -y \
     "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
@@ -67,16 +67,17 @@ sudo dnf install -y \
 sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1 || true
 
 STEP="обновление системы и установка Timeshift"
-echo -e "\n${YELLOW}[3/6] Обновление системы и установка утилиты снимков Timeshift...${NC}"
+echo -e "\n${YELLOW}[3/8] Обновление системы и установка утилиты снимков Timeshift...${NC}"
 sudo dnf upgrade -y --refresh
 sudo dnf install -y timeshift
 
-STEP="установка проприетарного драйвера NVIDIA и Vulkan"
-echo -e "\n${YELLOW}[4/6] Установка проприетарного драйвера NVIDIA, CUDA и Vulkan...${NC}"
+STEP="установка драйверов NVIDIA, Intel Media Driver и Vulkan"
+echo -e "\n${YELLOW}[4/8] Установка проприетарного драйвера NVIDIA, Intel Media Driver и Vulkan...${NC}"
 sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda vulkan-loader vulkan-tools intel-media-driver
+sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service 2>/dev/null || true
 
 STEP="применение ядерных твиков sysctl и сетевого планировщика CAKE + BBR"
-echo -e "\n${YELLOW}[5/6] Применение ядерных твиков sysctl (CachyOS / SteamOS / Nobara)...${NC}"
+echo -e "\n${YELLOW}[5/8] Применение ядерных твиков sysctl (CachyOS / SteamOS / Nobara)...${NC}"
 sudo tee /etc/modules-load.d/network-tuning.conf > /dev/null << 'EOF'
 tcp_bbr
 sch_cake
@@ -109,8 +110,37 @@ net.core.netdev_max_backlog = 16384
 EOF
 sudo sysctl --system > /dev/null
 
+STEP="применение игровых правил udev (ntsync и планировщик I/O NVMe)"
+echo -e "\n${YELLOW}[6/8] Применение правил udev для ntsync и I/O NVMe (CachyOS)...${NC}"
+sudo tee /etc/udev/rules.d/99-gaming-optimizations.rules > /dev/null << 'EOF'
+# Доступ пользователя к драйверу синхронизации ntsync для Wine/Proton
+KERNEL=="ntsync", MODE="0660", TAG+="uaccess"
+
+# Минимальная задержка ввода-вывода для NVMe SSD
+ACTION=="add|change", KERNEL=="nvme[0-9]*", ATTR{queue/scheduler}="none"
+EOF
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+STEP="оптимизация SSD (noatime для Btrfs и лимит логов journald)"
+echo -e "\n${YELLOW}[7/8] Оптимизация SSD: опция noatime в /etc/fstab и лимит логов journald (150 МБ)...${NC}"
+sudo cp -n /etc/fstab /etc/fstab.bak
+if grep -q "btrfs" /etc/fstab && ! grep -q "noatime" /etc/fstab; then
+    sudo sed -i '/btrfs/ s/compress=zstd:1/compress=zstd:1,noatime/g' /etc/fstab
+    sudo systemctl daemon-reload
+    sudo mount -o remount / 2>/dev/null || true
+    sudo mount -o remount /home 2>/dev/null || true
+fi
+
+sudo mkdir -p /etc/systemd/journald.conf.d
+sudo tee /etc/systemd/journald.conf.d/99-size-limit.conf > /dev/null << 'EOF'
+[Journal]
+SystemMaxUse=150M
+RuntimeMaxUse=50M
+EOF
+sudo systemctl restart systemd-journald 2>/dev/null || true
+
 STEP="блокировка аппаратного таймера iTCO_wdt"
-echo -e "\n${YELLOW}[6/6] Надёжная блокировка аппаратного таймера iTCO_wdt...${NC}"
+echo -e "\n${YELLOW}[8/8] Надёжная блокировка аппаратного таймера iTCO_wdt...${NC}"
 sudo tee /etc/modprobe.d/watchdog.conf > /dev/null << 'EOF'
 blacklist iTCO_wdt
 blacklist iTCO_vendor_support
