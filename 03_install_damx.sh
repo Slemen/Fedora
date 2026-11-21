@@ -61,8 +61,8 @@ else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
     DIRECT_URL="https://github.com"
     echo -e "${CYAN}Загрузка: ${DIRECT_URL}${NC}"
-    if ! curl -fL --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz"; then
-        echo -e "${RED}Не удалось скачать архив DAMX.${NC}"
+    if ! curl -fL -A "Mozilla/5.0" --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz" || ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
+        echo -e "${RED}GitHub не отдал архив DAMX напрямую. Скачайте DAMX-*.tar.xz через браузер в ~/Документы и запустите Этап 3 снова.${NC}"
         exit 1
     fi
 fi
