@@ -69,9 +69,12 @@ if ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
     exit 1
 fi
 
-STEP="распаковка и запуск установщика DAMX"
+STEP="распаковка, патч ядра и запуск установщика DAMX"
 echo -e "\n${YELLOW}[3/3] Распаковка и установка Div Acer Manager Max...${NC}"
 tar -xJf "$WORK_DAMX/damx.tar.xz" -C "$WORK_DAMX"
+
+# Патч совместимости с ядром Linux 7.3+ (замена удалённой функции strncpy на strscpy)
+find "$WORK_DAMX" -name "linuwu_sense.c" -exec sed -i 's/\bstrncpy(/strscpy(/g' {} +
 
 INSTALL_SCRIPT=$(find "$WORK_DAMX" -maxdepth 3 -name "setup.sh" | head -n 1 || true)
 if [[ -z "$INSTALL_SCRIPT" ]]; then
