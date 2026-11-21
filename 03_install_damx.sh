@@ -59,17 +59,7 @@ if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
     cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
 else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
-    REL_PATH=$(curl -fsSL "https://github.com" 2>/dev/null \
-        | grep -oE '/PXDiv/Div-Acer-Manager-Max/releases/download/[^"]+DAMX-[^"]+\.tar\.xz' \
-
-        | head -n 1 || true)
-
-    if [[ -n "$REL_PATH" ]]; then
-        DIRECT_URL="https://github.com${REL_PATH}"
-    else
-        DIRECT_URL="https://github.com"
-    fi
-
+    DIRECT_URL="https://github.com"
     echo -e "${CYAN}Загрузка: ${DIRECT_URL}${NC}"
     if ! curl -fL --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz"; then
         echo -e "${RED}Не удалось скачать архив DAMX.${NC}"
@@ -97,3 +87,4 @@ echo -e "${GREEN}  DIV ACER MANAGER MAX (DAMX) УСПЕШНО УСТАНОВЛЕ
 echo -e "${CYAN}  Подсказка: клавишу Nitro для запуска команды DAMX назначьте сами в  ${NC}"
 echo -e "${CYAN}  Параметры системы KDE -> Клавиатура -> Комбинации клавиш.           ${NC}"
 echo -e "${GREEN}======================================================================${NC}"
+
