@@ -73,7 +73,7 @@ sudo dnf install -y timeshift
 
 STEP="установка проприетарного драйвера NVIDIA и Vulkan"
 echo -e "\n${YELLOW}[4/6] Установка проприетарного драйвера NVIDIA, CUDA и Vulkan...${NC}"
-sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda vulkan-loader vulkan-tools
+sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda vulkan-loader vulkan-tools intel-media-driver
 
 STEP="применение ядерных твиков sysctl и сетевого планировщика CAKE + BBR"
 echo -e "\n${YELLOW}[5/6] Применение ядерных твиков sysctl (CachyOS / SteamOS / Nobara)...${NC}"
