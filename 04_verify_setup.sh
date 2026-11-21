@@ -41,11 +41,11 @@ else
     fail "3. Timeshift не установлен"
 fi
 
-# 4. Драйвер NVIDIA и Intel Media Driver
+# 4. Графический стек (NVIDIA + intel-media-driver)
 if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && rpm -q intel-media-driver >/dev/null 2>&1; then
     ok "4. Графический стек активен (NVIDIA + intel-media-driver)"
 else
-    fail "4. Драйвер NVIDIA или intel-media-driver не активен"
+    fail "4. Драйвер NVIDIA или intel-media-driver не установлен"
 fi
 
 # 5. Vulkan
@@ -70,7 +70,7 @@ else
     fail "7. Сетевой стек CAKE + BBR не применён"
 fi
 
-# 8. Игровые твики sysctl (max_map_count, split_lock_mitigate, compaction_proactiveness)
+# 8. Игровые твики sysctl
 if [[ "$(sysctl -n vm.max_map_count 2>/dev/null)" == "2147483642" ]] && \
    [[ "$(sysctl -n kernel.split_lock_mitigate 2>/dev/null)" == "0" ]] && \
    [[ "$(sysctl -n vm.compaction_proactiveness 2>/dev/null)" == "0" ]]; then
@@ -87,14 +87,15 @@ else
     fail "9. Правила udev 99-gaming-optimizations.rules не найдены"
 fi
 
-# 10. Оптимизация SSD (noatime и лимит логов journald)
-if findmnt -no OPTIONS / | grep -q "noatime" && [[ -f /etc/systemd/journald.conf.d/99-size-limit.conf ]]; then
+# 10. Оптимизация SSD (noatime и journald)
+if findmnt -no OPTIONS / 2>/dev/null | grep -q "noatime" && \
+   [[ -f /etc/systemd/journald.conf.d/99-size-limit.conf ]]; then
     ok "10. Оптимизация SSD: опция noatime для Btrfs и лимит логов journald (150 МБ)"
 else
-    fail "10. Опция noatime или лимит логов journald не применены"
+    fail "10. Опция noatime для Btrfs или лимит логов journald не применены"
 fi
 
-# 11. Кодеки FFmpeg и утилиты VA-API / GLX
+# 11. Кодеки FFmpeg и утилиты видео
 if rpm -q ffmpeg >/dev/null 2>&1 && ! rpm -q ffmpeg-free >/dev/null 2>&1 && \
    command -v vainfo >/dev/null 2>&1 && command -v glxinfo >/dev/null 2>&1; then
     ok "11. Полные кодеки FFmpeg и утилиты VA-API / GLX (vainfo, glxinfo) установлены"
@@ -143,12 +144,12 @@ else
     fail "16. Профиль Konsole, схема Newbl1nk или шрифт JetBrains не настроены"
 fi
 
-# 17. Оболочка Fish и Starship
+# 17. Оболочка Fish и Starship (левый индикатор времени)
 if command -v fish >/dev/null 2>&1 && command -v starship >/dev/null 2>&1 && \
-   grep -q "fish_right_prompt" "$HOME/.config/fish/config.fish" 2>/dev/null; then
-    ok "17. Терминал: оболочка Fish, промпт Starship и индикатор времени настроены"
+   grep -q "_starship_fish_prompt" "$HOME/.config/fish/config.fish" 2>/dev/null; then
+    ok "17. Терминал: оболочка Fish, промпт Starship и левый индикатор времени настроены"
 else
-    fail "17. Оболочка Fish или Starship не настроены"
+    fail "17. Оболочка Fish или левый индикатор времени не настроены"
 fi
 
 # 18. Конфигурация Nano

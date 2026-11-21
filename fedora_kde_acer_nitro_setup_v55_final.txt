@@ -35,7 +35,8 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
            и перемонтирование (systemctl daemon-reload + mount -o remount)
          - Ограничение размера логов systemd-journald до 150 МБ
 [ ] 1.8. Надёжная блокировка аппаратного таймера iTCO_wdt (modprobe.d + grubby).
-[ ] 1.9. ОБЯЗАТЕЛЬНАЯ ПЕРЕЗАГРУЗКА (пункт 5 в меню) и первый снимок в Timeshift.
+[ ] 1.9. ОБЯЗАТЕЛЬНАЯ ПЕРЕЗАГРУЗКА (пункт 5 в меню) и первый снимок в Timeshift
+         (подраздел @home в резервную копию НЕ включать).
 
 --------------------------------------------------------------------------------
 ЭТАП 2: КОДЕКИ, STEAM, GAMEMODE, NVGAME И ТЕРМИНАЛ (02_software_and_env.sh)
@@ -53,8 +54,8 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
          - Блокировка неявных слоёв Vulkan (VK_LOADER_LAYERS_DISABLE="~implicit~")
          * Параметры запуска игры в Steam: nvgame %command%
 [ ] 2.6. Установка Starship, автоустановка JetBrainsMono Nerd Font и настройка Fish
-         (алиасы upd, clean, gpuinfo; русский индикатор времени выполнения команд в
-         fish_right_prompt), Konsole (профиль Fish + схема Newbl1nk) и Nano.
+         (алиасы upd, clean, gpuinfo; русский индикатор времени выполнения команд
+         слева перед промптом), Konsole (профиль Fish + схема Newbl1nk) и Nano.
 [ ] 2.7. ОБЯЗАТЕЛЬНАЯ ПЕРЕЗАГРУЗКА перед Этапом 3.
 
 --------------------------------------------------------------------------------

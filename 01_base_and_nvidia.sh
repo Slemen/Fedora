@@ -43,7 +43,7 @@ sudo -v
 SUDO_PID=$!
 
 echo -e "${CYAN}======================================================================${NC}"
-echo -e "${CYAN}  ЭТАП 1: БАЗОВАЯ НАСТРОЙКА, NVIDIA И ЯДЕРНЫЕ ТВИКИ (ACER NITRO V15-51)${NC}"
+echo -e "${CYAN}  ЭТАП 1: БАЗОВАЯ НАСТРОЙКА, NVIDIA, SSD И ТВИКИ (ACER NITRO V15-51)  ${NC}"
 echo -e "${CYAN}======================================================================${NC}"
 
 STEP="оптимизация DNF5"
@@ -71,8 +71,8 @@ echo -e "\n${YELLOW}[3/8] Обновление системы и установ�
 sudo dnf upgrade -y --refresh
 sudo dnf install -y timeshift
 
-STEP="установка драйверов NVIDIA, Intel Media Driver и Vulkan"
-echo -e "\n${YELLOW}[4/8] Установка проприетарного драйвера NVIDIA, Intel Media Driver и Vulkan...${NC}"
+STEP="установка графического стека NVIDIA, Vulkan и Intel Media Driver"
+echo -e "\n${YELLOW}[4/8] Установка драйвера NVIDIA, CUDA, Vulkan и intel-media-driver...${NC}"
 sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda vulkan-loader vulkan-tools intel-media-driver
 sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service 2>/dev/null || true
 
@@ -122,7 +122,7 @@ EOF
 sudo udevadm control --reload-rules && sudo udevadm trigger
 
 STEP="оптимизация SSD (noatime для Btrfs и лимит логов journald)"
-echo -e "\n${YELLOW}[7/8] Оптимизация SSD: опция noatime в /etc/fstab и лимит логов journald (150 МБ)...${NC}"
+echo -e "\n${YELLOW}[7/8] Оптимизация SSD (noatime в fstab и лимит journald 150 МБ)...${NC}"
 sudo cp -n /etc/fstab /etc/fstab.bak
 if grep -q "btrfs" /etc/fstab && ! grep -q "noatime" /etc/fstab; then
     sudo sed -i '/btrfs/ s/compress=zstd:1/compress=zstd:1,noatime/g' /etc/fstab
@@ -137,7 +137,7 @@ sudo tee /etc/systemd/journald.conf.d/99-size-limit.conf > /dev/null << 'EOF'
 SystemMaxUse=150M
 RuntimeMaxUse=50M
 EOF
-sudo systemctl restart systemd-journald 2>/dev/null || true
+sudo systemctl restart systemd-journald
 
 STEP="блокировка аппаратного таймера iTCO_wdt"
 echo -e "\n${YELLOW}[8/8] Надёжная блокировка аппаратного таймера iTCO_wdt...${NC}"

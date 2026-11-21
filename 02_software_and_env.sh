@@ -46,12 +46,12 @@ echo -e "${CYAN}================================================================
 echo -e "${CYAN}  ЭТАП 2: КОДЕКИ, STEAM, GAMEMODE, NVGAME И ТЕРМИНАЛ (NITRO V15-51)   ${NC}"
 echo -e "${CYAN}======================================================================${NC}"
 
-STEP="установка мультимедиа-кодеков и утилит видеодиагностики"
-echo -e "\n${YELLOW}[1/6] Установка полных мультимедиа-кодеков и утилит VA-API / GLX...${NC}"
+STEP="установка мультимедиа-кодеков и утилит видео"
+echo -e "\n${YELLOW}[1/6] Установка полных кодеков FFmpeg, GStreamer и утилит VA-API/GLX...${NC}"
 sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly libva-nvidia-driver libva-utils vdpauinfo glx-utils
 
-STEP="установка Steam, GameMode, планировщиков и словарей орфографии"
+STEP="установка Steam, GameMode, планировщиков и словарей"
 echo -e "\n${YELLOW}[2/6] Установка Steam, GameMode, system76-scheduler, earlyoom и словарей...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
 sudo dnf install -y steam gamemode system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
@@ -167,15 +167,17 @@ alias upd='sudo dnf upgrade -y --refresh'
 alias clean='sudo dnf autoremove -y && sudo dnf clean all'
 alias gpuinfo='nvidia-smi'
 
-function fish_right_prompt
-    if test $CMD_DURATION -gt 2000
-        set -l s (math -s1 "$CMD_DURATION / 1000")
-        echo -n (set_color --bold yellow)"время: "$s"с"(set_color normal)
-    end
-end
-
 if status is-interactive
     starship init fish | source
+
+    functions -c fish_prompt _starship_fish_prompt
+    function fish_prompt
+        if set -q CMD_DURATION; and test $CMD_DURATION -gt 2000
+            set -l s (math -s1 "$CMD_DURATION / 1000")
+            echo -n (set_color --bold yellow)"[время: "$s"с] "(set_color normal)
+        end
+        _starship_fish_prompt
+    end
 end
 EOF
 
