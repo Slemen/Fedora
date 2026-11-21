@@ -62,12 +62,13 @@ else
     fail "6. ZRAM не активен"
 fi
 
-# 7. Сетевой планировщик CAKE + BBR
+# 7. Сетевой планировщик CAKE + BBR и Wi-Fi powersave off
 if [[ "$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)" == "bbr" ]] && \
-   [[ "$(sysctl -n net.core.default_qdisc 2>/dev/null)" == "cake" ]]; then
-    ok "7. Сетевой стек CAKE + BBR активен"
+   [[ "$(sysctl -n net.core.default_qdisc 2>/dev/null)" == "cake" ]] && \
+   [[ -f /etc/NetworkManager/conf.d/wifi-powersave-off.conf ]]; then
+    ok "7. Сеть: CAKE + BBR активны, энергосбережение Wi-Fi отключено"
 else
-    fail "7. Сетевой стек CAKE + BBR не применён"
+    fail "7. Сетевой стек CAKE + BBR или правило Wi-Fi powersave не применены"
 fi
 
 # 8. Игровые твики sysctl
@@ -135,21 +136,23 @@ else
     fail "15. Модуль iTCO_wdt всё ещё загружен (проверьте перезагрузку)"
 fi
 
-# 16. Профиль Konsole и шрифт JetBrains Mono
+# 16. Профиль Konsole и шрифт JetBrains Mono (размер 10)
 if grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null && \
    [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
+   grep -q ",10," "$HOME/.local/share/konsole/Fish.profile" 2>/dev/null && \
    fc-list : family | grep -i "JetBrains" >/dev/null 2>&1; then
-    ok "16. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrains)"
+    ok "16. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrains 10pt)"
 else
     fail "16. Профиль Konsole, схема Newbl1nk или шрифт JetBrains не настроены"
 fi
 
-# 17. Оболочка Fish и Starship (левый индикатор времени)
+# 17. Оболочка Fish и Starship (левый индикатор времени с минутами и секундами)
 if command -v fish >/dev/null 2>&1 && command -v starship >/dev/null 2>&1 && \
-   grep -q "_starship_fish_prompt" "$HOME/.config/fish/config.fish" 2>/dev/null; then
-    ok "17. Терминал: оболочка Fish, промпт Starship и левый индикатор времени настроены"
+   grep -q "_starship_fish_prompt" "$HOME/.config/fish/config.fish" 2>/dev/null && \
+   grep -q "total_s" "$HOME/.config/fish/config.fish" 2>/dev/null; then
+    ok "17. Терминал: Fish, Starship и левый индикатор времени (мин/сек) настроены"
 else
-    fail "17. Оболочка Fish или левый индикатор времени не настроены"
+    fail "17. Оболочка Fish или индикатор времени (мин/сек) не настроены"
 fi
 
 # 18. Конфигурация Nano

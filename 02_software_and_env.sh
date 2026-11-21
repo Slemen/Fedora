@@ -173,8 +173,15 @@ if status is-interactive
     functions -c fish_prompt _starship_fish_prompt
     function fish_prompt
         if set -q CMD_DURATION; and test $CMD_DURATION -gt 2000
-            set -l s (math -s1 "$CMD_DURATION / 1000")
-            echo -n (set_color --bold yellow)"[время: "$s"с] "(set_color normal)
+            set -l total_s (math -s0 "$CMD_DURATION / 1000")
+            set -l m (math -s0 "$total_s / 60")
+            set -l s (math "$total_s % 60")
+            if test $m -gt 0
+                echo -n (set_color --bold yellow)"[время: "$m"м "$s"с] "(set_color normal)
+            else
+                set -l s_dec (math -s1 "$CMD_DURATION / 1000")
+                echo -n (set_color --bold yellow)"[время: "$s_dec"с] "(set_color normal)
+            end
         end
         _starship_fish_prompt
     end

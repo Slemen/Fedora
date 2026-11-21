@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# ЭТАП 1: БАЗОВАЯ НАСТРОЙКА, RPM FUSION, TIMESHIFT, NVIDIA, SYSCTL, UDEV И SSD
+# ЭТАП 1: БАЗОВАЯ НАСТРОЙКА, RPM FUSION, TIMESHIFT, NVIDIA, SYSCTL, WI-FI И SSD
 # ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
 # (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
 # ==============================================================================
@@ -76,8 +76,8 @@ echo -e "\n${YELLOW}[4/8] Установка драйвера NVIDIA, CUDA, Vulk
 sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda vulkan-loader vulkan-tools intel-media-driver
 sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service 2>/dev/null || true
 
-STEP="применение ядерных твиков sysctl и сетевого планировщика CAKE + BBR"
-echo -e "\n${YELLOW}[5/8] Применение ядерных твиков sysctl (CachyOS / SteamOS / Nobara)...${NC}"
+STEP="применение ядерных твиков sysctl, CAKE + BBR и отключение энергосбережения Wi-Fi"
+echo -e "\n${YELLOW}[5/8] Применение ядерных твиков sysctl (CAKE + BBR) и Wi-Fi powersave off...${NC}"
 sudo tee /etc/modules-load.d/network-tuning.conf > /dev/null << 'EOF'
 tcp_bbr
 sch_cake
@@ -109,6 +109,14 @@ net.core.wmem_max = 16777216
 net.core.netdev_max_backlog = 16384
 EOF
 sudo sysctl --system > /dev/null
+
+# Отключение энергосбережения Wi-Fi для стабильного пинга в онлайн-играх
+sudo mkdir -p /etc/NetworkManager/conf.d
+sudo tee /etc/NetworkManager/conf.d/wifi-powersave-off.conf > /dev/null << 'EOF'
+[connection]
+wifi.powersave = 2
+EOF
+sudo systemctl restart NetworkManager 2>/dev/null || true
 
 STEP="применение игровых правил udev (ntsync и планировщик I/O NVMe)"
 echo -e "\n${YELLOW}[6/8] Применение правил udev для ntsync и I/O NVMe (CachyOS)...${NC}"

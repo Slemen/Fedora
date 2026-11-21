@@ -45,9 +45,9 @@ while true; do
     S3="[ ]"; (command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]] || systemctl list-unit-files | grep -qi "damx") && S3="${GREEN}[✓]${NC}"
 
     echo -e "${CYAN}======================================================================${NC}"
-    echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v55)       ${NC}"
+    echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v56)       ${NC}"
     echo -e "${CYAN}======================================================================${NC}"
-    echo -e "  ${GREEN}1)${NC} ${S1} Этап 1: База, RPM Fusion, Timeshift, NVIDIA, sysctl, udev, SSD"
+    echo -e "  ${GREEN}1)${NC} ${S1} Этап 1: База, RPM Fusion, Timeshift, NVIDIA, sysctl, Wi-Fi, SSD"
     echo -e "  ${GREEN}2)${NC} ${S2} Этап 2: Кодеки, Steam, GameMode, nvgame, PipeWire и Fish"
     echo -e "  ${GREEN}3)${NC} ${S3} Этап 3: Установка Div Acer Manager Max (DAMX — кулеры и батарея)"
     echo -e "  ${GREEN}4)${NC}     Этап 4: Полная диагностика и проверка системы (20 пунктов)"
