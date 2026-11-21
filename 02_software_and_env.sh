@@ -283,7 +283,7 @@ EOF
 cat << EOF > "$HOME/.local/share/konsole/Fish.profile"
 [Appearance]
 ColorScheme=Newbl1nk
-Font=${FONT_NAME},11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+Font=${FONT_NAME},10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
 
 [General]
 Command=/usr/bin/fish
