@@ -116,10 +116,8 @@ sudo chmod +x /usr/local/bin/nvgame
 STEP="установка Starship, Nerd Font и настройка Fish / Konsole / Nano"
 echo -e "\n${YELLOW}[5/6] Установка Starship, JetBrainsMono Nerd Font и настройка Fish + Konsole...${NC}"
 if ! command -v starship >/dev/null 2>&1; then
-    curl -fsSL "https://github.com" -o /tmp/starship.tar.gz
-    sudo tar -xzf /tmp/starship.tar.gz -C /usr/local/bin starship
-    sudo chmod +x /usr/local/bin/starship
-    rm -f /tmp/starship.tar.gz
+    sudo dnf copr enable -y atim/starship
+    sudo dnf install -y starship
 fi
 
 FONT_DIR="$HOME/.local/share/fonts/JetBrainsMonoNerd"
