@@ -59,10 +59,7 @@ if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
     cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
 else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
-    DOWNLOAD_URL=$(curl -fsSL "https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest" \
-        | grep -oE '"browser_download_url":\s*"[^"]+DAMX-[^"]+\.tar\.xz"' \
-
-        | head -n 1 | cut -d'"' -f4)
+    DOWNLOAD_URL=$(curl -fsSL "https://github.com" | grep -oE '"browser_download_url":\s*"[^"]+DAMX-[^"]+\.tar\.xz"' | head -n 1 | cut -d'"' -f4)
     if [[ -z "$DOWNLOAD_URL" ]]; then
         echo -e "${RED}Не удалось получить ссылку на релиз DAMX с GitHub.${NC}"
         exit 1
