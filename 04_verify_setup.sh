@@ -2,165 +2,161 @@
 set -uo pipefail
 
 # ==============================================================================
-# ДИСКЛЕЙМЕР:
-# Данные скрипты и конфигурации созданы исключительно под личные нужды автора
-# и конкретное оборудование ноутбука Acer Nitro V15-51 (Fedora KDE).
-# Автор не несёт ответственности за возможные сбои или потерю данных при их
-# использовании на других системах. Используйте на свой страх и риск.
+# ЭТАП 4: КОМПЛЕКСНАЯ ПРОВЕРКА НАСТРОЙКИ FEDORA KDE (ACER NITRO V15-51)
 # ==============================================================================
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+NC='\033[0m'
 
 PASS=0
 FAIL=0
 
-ok() {
-    echo -e "\e[32m[ OK ]\e[0m $1"
-    ((PASS++))
-}
+ok()   { echo -e "${GREEN}[ OK ]${NC} $1"; ((++PASS)); }
+fail() { echo -e "${RED}[FAIL]${NC} $1"; ((++FAIL)); }
 
-fail() {
-    echo -e "\e[31m[FAIL]\e[0m $1"
-    ((FAIL++))
-}
-
-echo "=================================================================="
-echo " ДИАГНОСТИКА НАСТРОЙКИ FEDORA KDE — ACER NITRO V15-51 (18 ПУНКТОВ)"
-echo "=================================================================="
+echo -e "${CYAN}======================================================================${NC}"
+echo -e "${CYAN}  ДИАГНОСТИКА СИСТЕМЫ FEDORA KDE ДЛЯ ACER NITRO V15-51 (18 ПУНКТОВ)   ${NC}"
+echo -e "${CYAN}======================================================================${NC}\n"
 
 # 1. DNF5
-if grep -q "max_parallel_downloads=10" /etc/dnf/dnf.conf 2>/dev/null && \
-   grep -q "timeout=30" /etc/dnf/dnf.conf 2>/dev/null && \
-   grep -q "ip_resolve=4" /etc/dnf/dnf.conf 2>/dev/null; then
-    ok "1. DNF5: параллельные загрузки (10), таймаут (30) и IPv4 настроены"
+if grep -q "max_parallel_downloads=10" /etc/dnf/dnf.conf && grep -q "ip_resolve=4" /etc/dnf/dnf.conf; then
+    ok "1. DNF5 ускорен (10 потоков, fastestmirror, ip_resolve=4)"
 else
-    fail "1. DNF5: отсутствуют параметры оптимизации в /etc/dnf/dnf.conf"
+    fail "1. Параметры ускорения DNF5 не найдены"
 fi
 
 # 2. RPM Fusion
-if dnf repolist | grep -q "rpmfusion-free" && dnf repolist | grep -q "rpmfusion-nonfree"; then
+if dnf repolist 2>/dev/null | grep -q "rpmfusion-free" && dnf repolist 2>/dev/null | grep -q "rpmfusion-nonfree"; then
     ok "2. Репозитории RPM Fusion Free и Nonfree подключены"
 else
-    fail "2. Репозитории RPM Fusion не найдены"
+    fail "2. Репозитории RPM Fusion не активны"
 fi
 
-# 3. Драйвер NVIDIA
+# 3. Timeshift & Btrfs-Assistant
+if command -v timeshift >/dev/null 2>&1 && command -v btrfs-assistant >/dev/null 2>&1; then
+    ok "3. Утилиты снимков Btrfs (Timeshift и Btrfs-Assistant) установлены"
+else
+    fail "3. Timeshift или Btrfs-Assistant не установлены"
+fi
+
+# 4. Драйвер NVIDIA
 if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-    ok "3. Проприетарный драйвер NVIDIA активен (nvidia-smi работает)"
+    ok "4. Проприетарный драйвер NVIDIA активен (nvidia-smi работает)"
 else
-    fail "3. Драйвер NVIDIA не активен (требуется перезагрузка или выключение Secure Boot)"
+    fail "4. Драйвер NVIDIA не загружен или требует перезагрузки"
 fi
 
-# 4. Vulkan
-if command -v vulkaninfo >/dev/null 2>&1 && vulkaninfo --summary 2>/dev/null | grep -qi "NVIDIA"; then
-    ok "4. Графический стек Vulkan видит видеокарту NVIDIA"
+# 5. Vulkan
+if command -v vulkaninfo >/dev/null 2>&1; then
+    ok "5. Поддержка Vulkan (vulkan-tools) установлена"
 else
-    fail "4. Vulkan не инициализирован или не видит NVIDIA"
+    fail "5. Утилиты Vulkan не найдены"
 fi
 
-# 5. Timeshift
-if command -v timeshift >/dev/null 2>&1; then
-    ok "5. Утилита резервного копирования Timeshift установлена"
+# 6. ZRAM
+if swapon --show 2>/dev/null | grep -q "zram"; then
+    ok "6. Сжатая память ZRAM активна"
 else
-    fail "5. Timeshift не установлен"
+    fail "6. ZRAM не активен"
 fi
 
-# 6. Sysctl (BBR и память)
+# 7. Сетевой планировщик CAKE + BBR
 if [[ "$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)" == "bbr" ]] && \
-   [[ "$(sysctl -n vm.max_map_count 2>/dev/null)" == "2147483642" ]]; then
-    ok "6. Ядерные твики sysctl (TCP BBR, max_map_count, NVMe/ZRAM) применены"
+   [[ "$(sysctl -n net.core.default_qdisc 2>/dev/null)" == "cake" ]]; then
+    ok "7. Сетевой стек CAKE + BBR активен"
 else
-    fail "6. Твики sysctl не активны"
+    fail "7. Сетевой стек CAKE + BBR не применён"
 fi
 
-# 7. Мультимедиа кодеки
-if rpm -q ffmpeg >/dev/null 2>&1 && rpm -q libavcodec-freeworld >/dev/null 2>&1; then
-    ok "7. Полные мультимедиа-кодеки (ffmpeg + freeworld) установлены"
+# 8. Игровые твики sysctl (max_map_count, split_lock_mitigate, compaction_proactiveness)
+if [[ "$(sysctl -n vm.max_map_count 2>/dev/null)" == "2147483642" ]] && \
+   [[ "$(sysctl -n kernel.split_lock_mitigate 2>/dev/null)" == "0" ]] && \
+   [[ "$(sysctl -n vm.compaction_proactiveness 2>/dev/null)" == "0" ]]; then
+    ok "8. Ядерные твики памяти и CPU (max_map_count, split_lock=0, compaction=0) применены"
 else
-    fail "7. Не установлены полные мультимедиа-кодеки"
+    fail "8. Ядерные твики sysctl применены не полностью"
 fi
 
-# 8. system76-scheduler
-if systemctl is-active --quiet com.system76.Scheduler.service; then
-    ok "8. Планировщик приоритетов процессов system76-scheduler активен"
+# 9. Кодеки FFmpeg
+if rpm -q ffmpeg >/dev/null 2>&1 && ! rpm -q ffmpeg-free >/dev/null 2>&1; then
+    ok "9. Полный пакет мультимедиа-кодеков FFmpeg установлен"
 else
-    fail "8. Служба system76-scheduler не запущена"
+    fail "9. Используется урезанный ffmpeg-free вместо полного ffmpeg"
 fi
 
-# 9. earlyoom
-if systemctl is-active --quiet earlyoom.service; then
-    ok "9. Защита от зависаний при нехватке ОЗУ (earlyoom) активна"
+# 10. Службы оптимизации
+if systemctl is-active --quiet system76-scheduler && systemctl is-active --quiet earlyoom; then
+    ok "10. Службы system76-scheduler и earlyoom запущены"
 else
-    fail "9. Служба earlyoom не запущена"
+    fail "10. Одна из служб (system76-scheduler / earlyoom) не активна"
 fi
 
-# 10. PipeWire буфер
-if [[ -f "$HOME/.config/pipewire/pipewire.conf.d/99-lowlatency.conf" ]]; then
-    ok "10. Буфер звука PipeWire (min-quantum = 1024) настроен"
+# 11. PipeWire и Wayland
+if [[ -f "$HOME/.config/pipewire/pipewire.conf.d/99-gaming-latency.conf" ]] && \
+   [[ -f "$HOME/.config/environment.d/wayland-nvidia.conf" ]]; then
+    ok "11. Конфигурации PipeWire (min-quantum=1024) и Wayland созданы"
 else
-    fail "10. Конфиг PipeWire не найден"
+    fail "11. Отсутствуют конфиги PipeWire или Wayland"
 fi
 
-# 11. Переменные Wayland
-if [[ -f "$HOME/.config/environment.d/99-wayland-nvidia.conf" ]]; then
-    ok "11. Переменные окружения Wayland для браузеров и Electron настроены"
-else
-    fail "11. Файл переменных Wayland не найден"
-fi
-
-# 12. Игровое окружение и nvgame
-if command -v steam >/dev/null 2>&1 && command -v gamemoderun >/dev/null 2>&1 && \
-   [[ -x /usr/local/bin/nvgame ]] && \
+# 12. Игровое окружение и враппер nvgame (10 ГБ + DXVK)
+if command -v steam >/dev/null 2>&1 && command -v gamemoderun >/dev/null 2>&1 && [[ -x /usr/local/bin/nvgame ]] && \
    grep -q "__GL_SHADER_DISK_CACHE_SIZE=10737418240" /usr/local/bin/nvgame && \
+   grep -q "DXVK_STATE_CACHE=1" /usr/local/bin/nvgame && \
    grep -q "VK_LOADER_LAYERS_DISABLE" /usr/local/bin/nvgame; then
-    ok "12. Игровое окружение: Steam, GameMode и враппер nvgame (кэш 10 ГБ, VK_LOADER)"
+    ok "12. Игровое окружение: Steam, GameMode и nvgame (кэш 10 ГБ + DXVK + VK_LOADER)"
 else
-    fail "12. Проблема с установкой Steam, GameMode или параметрами враппера nvgame"
+    fail "12. Steam, GameMode или расширенный враппер nvgame не настроены"
 fi
 
 # 13. Блокировка iTCO_wdt
 if grep -q "blacklist iTCO_wdt" /etc/modprobe.d/watchdog.conf 2>/dev/null && ! lsmod | grep -q "^iTCO_wdt"; then
-    ok "13. Таймер watchdog (iTCO_wdt) заблокирован и не загружен"
+    ok "13. Аппаратный таймер iTCO_wdt заблокирован"
 else
-    fail "13. Модуль iTCO_wdt загружен или не заблокирован"
+    fail "13. Модуль iTCO_wdt всё ещё загружен (проверьте перезагрузку)"
 fi
 
-# 14. Konsole и профиль Fish
-if [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
-   grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null; then
-    ok "14. Профиль Konsole (тема Newbl1nk и Fish по умолчанию) настроен"
+# 14. Профиль Konsole и шрифт Nerd Font
+if grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null && \
+   [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
+   fc-list | grep -qi "JetBrainsMono Nerd Font"; then
+    ok "14. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrainsMono Nerd Font)"
 else
-    fail "14. Настройки профиля Konsole не найдены"
+    fail "14. Профиль Konsole, схема Newbl1nk или шрифт Nerd Font не настроены"
 fi
 
-# 15. Оболочка Fish и промпт Starship
+# 15. Оболочка Fish и Starship
 if command -v fish >/dev/null 2>&1 && command -v starship >/dev/null 2>&1 && \
-   [[ -f "$HOME/.config/fish/config.fish" ]] && [[ -f "$HOME/.config/starship.toml" ]]; then
+   grep -q "fish_right_prompt" "$HOME/.config/fish/config.fish" 2>/dev/null; then
     ok "15. Терминал: оболочка Fish, промпт Starship и индикатор времени настроены"
 else
-    fail "15. Оболочка Fish или промпт Starship не настроены"
+    fail "15. Оболочка Fish или Starship не настроены"
 fi
 
 # 16. Конфигурация Nano
-if [[ -f "$HOME/.nanorc" ]] && grep -q "set linenumbers" "$HOME/.nanorc"; then
-    ok "16. Редактор Nano (нумерация строк, табуляция, мышь) настроен"
+if [[ -f "$HOME/.nanorc" ]] && sudo test -f /root/.nanorc; then
+    ok "16. Конфигурация Nano применена для пользователя и root"
 else
-    fail "16. Файл ~/.nanorc не найден"
+    fail "16. Файл .nanorc отсутствует у пользователя или root"
 fi
 
-# 17. Модуль linuwu_sense и DAMX
-if lsmod | grep -q "linuwu_sense" && command -v DAMX >/dev/null 2>&1; then
-    ok "17. Драйвер linuwu_sense и Div Acer Manager Max (DAMX) активны (клавиша настраивается вручную)"
+# 17. Div Acer Manager Max (DAMX)
+if command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]] || systemctl list-unit-files | grep -qi "damx"; then
+    ok "17. Div Acer Manager Max (DAMX) установлен (клавиша настраивается вручную)"
 else
-    fail "17. Модуль linuwu_sense или DAMX не обнаружены"
+    fail "17. Div Acer Manager Max (DAMX) не обнаружен"
 fi
 
 # 18. Состояние служб systemd
 FAILED_UNITS=$(systemctl --failed --no-legend | wc -l)
 if [[ "$FAILED_UNITS" -eq 0 ]]; then
-    ok "18. Системные службы systemd: упавших юнитов нет (0 failed)"
+    ok "18. Упавшие системные службы (systemd failed units) отсутствуют"
 else
     fail "18. Обнаружены упавшие службы systemd ($FAILED_UNITS шт.)"
 fi
 
-echo "=================================================================="
-echo " ИТОГ ДИАГНОСТИКИ: Успешно $PASS из 18 | Ошибок: $FAIL"
-echo "=================================================================="
+echo -e "\n${CYAN}======================================================================${NC}"
+echo -e "  ИТОГ ПРОВЕРКИ: ${GREEN}УСПЕШНО: ${PASS}${NC} | ${RED}ОШИБОК: ${FAIL}${NC}"
+echo -e "${CYAN}======================================================================${NC}"

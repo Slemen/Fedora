@@ -2,62 +2,90 @@
 set -euo pipefail
 
 # ==============================================================================
-# ДИСКЛЕЙМЕР:
-# Данные скрипты и конфигурации созданы исключительно под личные нужды автора
-# и конкретное оборудование ноутбука Acer Nitro V15-51 (Fedora KDE).
-# Автор не несёт ответственности за возможные сбои или потерю данных при их
-# использовании на других системах. Используйте на свой страх и риск.
+# ЭТАП 3: УСТАНОВКА DIV ACER MANAGER MAX (DAMX) ДЛЯ ACER NITRO V15-51
+# ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
+# (Acer Nitro V15-51). Автор не несёт ответственности за последствия его использования.
 # ==============================================================================
 
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+STEP="подготовка"
+FINISHED=0
+SUDO_PID=""
+WORK_DAMX="/tmp/damx_install"
+
+on_exit() {
+    local rc=$?
+    if [[ -n "$SUDO_PID" ]]; then
+        kill "$SUDO_PID" 2>/dev/null || true
+    fi
+    rm -rf "$WORK_DAMX"
+    if [[ $FINISHED -eq 0 && $rc -ne 0 ]]; then
+        echo -e "\n${RED}[ОШИБКА] Скрипт остановлен на шаге: ${STEP}. Исправьте причину выше и запустите снова.${NC}" >&2
+    fi
+}
+trap on_exit EXIT
+
 if [[ $EUID -eq 0 ]]; then
-    echo "ОШИБКА: Запускайте скрипт от имени обычного пользователя (без sudo)!"
+    echo -e "${RED}Ошибка: не запускайте скрипт от имени root (без sudo).${NC}"
     exit 1
 fi
 
-echo "=================================================================="
-echo " ЭТАП 3: Установка Div Acer Manager Max (DAMX) и linuwu_sense"
-echo "=================================================================="
+sudo -v
+( while sleep 50; do sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
+SUDO_PID=$!
 
-WORK_DAMX="/tmp/damx_install"
-trap 'rm -rf "$WORK_DAMX"' EXIT
+echo -e "${CYAN}======================================================================${NC}"
+echo -e "${CYAN}  ЭТАП 3: УСТАНОВКА DIV ACER MANAGER MAX (DAMX) (ACER NITRO V15-51)   ${NC}"
+echo -e "${CYAN}======================================================================${NC}"
+
+STEP="установка сборочных зависимостей DKMS"
+echo -e "\n${YELLOW}[1/3] Установка зависимостей для сборки модуля ядра linuwu_sense ($(uname -r))...${NC}"
+sudo dnf install -y dkms "kernel-devel-$(uname -r)" kernel-headers gcc make git curl tar xz
+
+STEP="поиск или загрузка архива DAMX"
+echo -e "\n${YELLOW}[2/3] Поиск локального архива DAMX или загрузка последнего релиза с GitHub...${NC}"
 rm -rf "$WORK_DAMX"
 mkdir -p "$WORK_DAMX"
 
-echo "[1/3] Установка зависимостей для сборки модуля ядра (DKMS)..."
-sudo dnf install -y dkms kernel-devel kernel-headers gcc make tar xz curl jq
-
-echo "[2/3] Поиск локального архива DAMX или загрузка последнего релиза с GitHub..."
 LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
 
 if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
-    echo "Найден локальный архив: $LOCAL_ARCHIVE"
+    echo -e "${GREEN}Найден локальный архив: ${LOCAL_ARCHIVE}${NC}"
     cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
 else
-    echo "Загрузка актуального релиза PXDiv/Div-Acer-Manager-Max с GitHub..."
-    ASSET_URL=$(curl -fsSL https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest | \
-        grep -oE '"browser_download_url":\s*"[^"]+\.tar\.xz"' | head -n 1 | cut -d'"' -f4)
-    if [[ -z "$ASSET_URL" ]]; then
-        echo "ОШИБКА: Не удалось получить ссылку на архив DAMX с GitHub."
+    echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
+    DOWNLOAD_URL=$(curl -fsSL "https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest" \
+        | grep -oE '"browser_download_url":\s*"[^"]+DAMX-[^"]+\.tar\.xz"' \
+        | head -n 1 | cut -d'"' -f4)
+    if [[ -z "$DOWNLOAD_URL" ]]; then
+        echo -e "${RED}Не удалось получить ссылку на релиз DAMX с GitHub.${NC}"
         exit 1
     fi
-    curl -fsSL "$ASSET_URL" -o "$WORK_DAMX/damx.tar.xz"
+    curl -fsSL "$DOWNLOAD_URL" -o "$WORK_DAMX/damx.tar.xz"
 fi
 
-echo "[3/3] Распаковка и запуск установщика DAMX..."
-tar -xf "$WORK_DAMX/damx.tar.xz" -C "$WORK_DAMX"
-INSTALL_BIN=$(find "$WORK_DAMX" -maxdepth 3 -type f \( -name "setup.sh" -o -name "install.sh" \) | head -n 1 || true)
+STEP="распаковка и запуск установщика DAMX"
+echo -e "\n${YELLOW}[3/3] Распаковка и установка Div Acer Manager Max...${NC}"
+tar -xJf "$WORK_DAMX/damx.tar.xz" -C "$WORK_DAMX"
+INSTALL_SCRIPT=$(find "$WORK_DAMX" -maxdepth 3 -name "install.sh" | head -n 1)
 
-if [[ -n "$INSTALL_BIN" ]]; then
-    chmod +x "$INSTALL_BIN"
-    (cd "$(dirname "$INSTALL_BIN")" && sudo bash "$(basename "$INSTALL_BIN")")
-else
-    echo "ОШИБКА: Установочный скрипт внутри архива DAMX не найден."
+if [[ -z "$INSTALL_SCRIPT" ]]; then
+    echo -e "${RED}Не найден внутренний скрипт install.sh внутри архива DAMX.${NC}"
     exit 1
 fi
 
-echo ""
-echo "=================================================================="
-echo " ЭТАП 3 ЗАВЕРШЁН!"
-echo " Привяжите кнопку Nitro к команде 'DAMX' вручную:"
-echo " Параметры системы -> Клавиатура -> Комбинации клавиш -> Добавить."
-echo "=================================================================="
+chmod +x "$INSTALL_SCRIPT"
+cd "$(dirname "$INSTALL_SCRIPT")"
+sudo ./install.sh
+
+FINISHED=1
+echo -e "\n${GREEN}======================================================================${NC}"
+echo -e "${GREEN}  DIV ACER MANAGER MAX (DAMX) УСПЕШНО УСТАНОВЛЕН!                     ${NC}"
+echo -e "${CYAN}  Подсказка: клавишу Nitro для запуска команды DAMX назначьте сами в  ${NC}"
+echo -e "${CYAN}  Параметры системы KDE -> Клавиатура -> Комбинации клавиш.           ${NC}"
+echo -e "${GREEN}======================================================================${NC}"

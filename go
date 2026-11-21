@@ -2,17 +2,15 @@
 set -euo pipefail
 
 # ==============================================================================
-# ДИСКЛЕЙМЕР:
-# Данные скрипты и конфигурации созданы исключительно под личные нужды автора
-# и конкретное оборудование ноутбука Acer Nitro V15-51 (Fedora KDE).
-# Автор не несёт ответственности за возможные сбои или потерю данных при их
-# использовании на других системах. Используйте на свой страх и риск.
+# БЫСТРЫЙ ЗАГРУЗЧИК УСТАНОВЩИКА FEDORA KDE ДЛЯ ACER NITRO V15-51
+# Запуск: curl -fsSL slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
 # ==============================================================================
 
 TARGET="/tmp/slemen_fedora_install.sh"
 URL="https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh"
 
-echo "Загрузка актуального меню установки для Acer Nitro V15-51..."
+trap 'rm -f "$TARGET"' EXIT
+
 curl -fsSL "$URL" -o "$TARGET"
 chmod +x "$TARGET"
-exec bash "$TARGET" </dev/tty
+bash "$TARGET" </dev/tty
