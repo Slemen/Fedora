@@ -61,6 +61,7 @@ else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
     DOWNLOAD_URL=$(curl -fsSL "https://api.github.com/repos/PXDiv/Div-Acer-Manager-Max/releases/latest" \
         | grep -oE '"browser_download_url":\s*"[^"]+DAMX-[^"]+\.tar\.xz"' \
+
         | head -n 1 | cut -d'"' -f4)
     if [[ -z "$DOWNLOAD_URL" ]]; then
         echo -e "${RED}Не удалось получить ссылку на релиз DAMX с GitHub.${NC}"
@@ -72,16 +73,16 @@ fi
 STEP="распаковка и запуск установщика DAMX"
 echo -e "\n${YELLOW}[3/3] Распаковка и установка Div Acer Manager Max...${NC}"
 tar -xJf "$WORK_DAMX/damx.tar.xz" -C "$WORK_DAMX"
-INSTALL_SCRIPT=$(find "$WORK_DAMX" -maxdepth 3 -name "install.sh" | head -n 1)
+INSTALL_SCRIPT=$(find "$WORK_DAMX" -maxdepth 3 \( -name "setup.sh" -o -name "install.sh" \) | head -n 1)
 
 if [[ -z "$INSTALL_SCRIPT" ]]; then
-    echo -e "${RED}Не найден внутренний скрипт install.sh внутри архива DAMX.${NC}"
+    echo -e "${RED}Не найден внутренний скрипт setup.sh внутри архива DAMX.${NC}"
     exit 1
 fi
 
 chmod +x "$INSTALL_SCRIPT"
 cd "$(dirname "$INSTALL_SCRIPT")"
-sudo ./install.sh
+sudo ./"$(basename "$INSTALL_SCRIPT")" </dev/tty
 
 FINISHED=1
 echo -e "\n${GREEN}======================================================================${NC}"
