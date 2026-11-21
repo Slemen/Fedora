@@ -42,7 +42,7 @@ while true; do
     echo -e "${CYAN}======================================================================${NC}"
     echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v52)       ${NC}"
     echo -e "${CYAN}======================================================================${NC}"
-    echo -e "  ${GREEN}1)${NC} Этап 1: База, RPM Fusion, Timeshift, Btrfs-Assistant, NVIDIA, sysctl"
+    echo -e "  ${GREEN}1)${NC} Этап 1: База, RPM Fusion, Timeshift, NVIDIA, sysctl"
     echo -e "  ${GREEN}2)${NC} Этап 2: Кодеки, Steam, nvgame (кэш 10 ГБ + DXVK), PipeWire, Fish"
     echo -e "  ${GREEN}3)${NC} Этап 3: Установка Div Acer Manager Max (DAMX — кулеры и батарея)"
     echo -e "  ${GREEN}4)${NC} Этап 4: Полная диагностика и проверка системы (18 пунктов)"

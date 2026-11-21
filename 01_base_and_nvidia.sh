@@ -66,8 +66,8 @@ sudo dnf install -y \
     "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"
 sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1 || true
 
-STEP="обновление системы и установка Timeshift / Btrfs-Assistant"
-echo -e "\n${YELLOW}[3/6] Обновление системы и установка утилит снимков Btrfs...${NC}"
+STEP="обновление системы и установка Timeshift"
+echo -e "\n${YELLOW}[3/6] Обновление системы и установка утилиты снимков Timeshift...${NC}"
 sudo dnf upgrade -y --refresh
 sudo dnf install -y timeshift
 

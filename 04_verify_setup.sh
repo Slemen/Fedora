@@ -34,11 +34,11 @@ else
     fail "2. Репозитории RPM Fusion не активны"
 fi
 
-# 3. Timeshift & Btrfs-Assistant
-if command -v timeshift >/dev/null 2>&1 && command -v btrfs-assistant >/dev/null 2>&1; then
-    ok "3. Утилиты снимков Btrfs (Timeshift и Btrfs-Assistant) установлены"
+# 3. Timeshift
+if command -v timeshift >/dev/null 2>&1; then
+    ok "3. Утилита снимков Btrfs (Timeshift) установлена"
 else
-    fail "3. Timeshift или Btrfs-Assistant не установлены"
+    fail "3. Timeshift не установлен"
 fi
 
 # 4. Драйвер NVIDIA
