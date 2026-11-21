@@ -59,14 +59,20 @@ if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
     cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
 else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
-    TAG_URL=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com" || true)
-    TAG_VER="${TAG_URL##*/}"
-    BASE_VER="${TAG_VER%%-*}"
-    DIRECT_URL="https://github.com{TAG_VER}/DAMX-${BASE_VER}.tar.xz"
+    REL_PATH=$(curl -fsSL "https://github.com" 2>/dev/null \
+        | grep -oE '/PXDiv/Div-Acer-Manager-Max/releases/download/[^"]+DAMX-[^"]+\.tar\.xz' \
 
+        | head -n 1 || true)
+
+    if [[ -n "$REL_PATH" ]]; then
+        DIRECT_URL="https://github.com${REL_PATH}"
+    else
+        DIRECT_URL="https://github.com"
+    fi
+
+    echo -e "${CYAN}Загрузка: ${DIRECT_URL}${NC}"
     if ! curl -fL --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz"; then
-        echo -e "${RED}Не удалось скачать архив DAMX (${DIRECT_URL}).${NC}"
-        echo -e "${YELLOW}Скачайте DAMX-*.tar.xz вручную в папку ~/Документы и запустите Этап 3 снова.${NC}"
+        echo -e "${RED}Не удалось скачать архив DAMX.${NC}"
         exit 1
     fi
 fi
