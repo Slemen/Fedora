@@ -45,28 +45,29 @@ echo -e "${CYAN}================================================================
 
 STEP="установка сборочных зависимостей DKMS"
 echo -e "\n${YELLOW}[1/3] Установка зависимостей для сборки модуля ядра linuwu_sense ($(uname -r))...${NC}"
-sudo dnf install -y dkms "kernel-devel-$(uname -r)" kernel-headers gcc make git curl tar xz
+sudo dnf install -y dkms "kernel-devel-$(uname -r)" kernel-headers gcc make git tar xz
 
-STEP="поиск или загрузка архива DAMX"
-echo -e "\n${YELLOW}[2/3] Поиск локального архива DAMX или загрузка последнего релиза с GitHub...${NC}"
+STEP="поиск локального архива DAMX"
+echo -e "\n${YELLOW}[2/3] Поиск архива DAMX-*.tar.xz в папке Документы...${NC}"
 rm -rf "$WORK_DAMX"
 mkdir -p "$WORK_DAMX"
 
-LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" "$HOME/Загрузки" "$HOME/Downloads" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
+LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
 
-if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
-    echo -e "${GREEN}Найден локальный архив: ${LOCAL_ARCHIVE}${NC}"
-    cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
-else
-    echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
-    REPO="PXDiv/Div-Acer-Manager-Max"
-DIRECT_URL=https://github.com/PXDiv/Div-Acer-Manager-Max/releases/download/1.0.2-h1/DAMX-1.0.2.tar.xz.sha256
+if [[ -z "$LOCAL_ARCHIVE" || ! -f "$LOCAL_ARCHIVE" ]]; then
+    echo -e "${RED}Архив DAMX-*.tar.xz не найден в ~/Документы (или ~/Documents).${NC}"
+    echo -e "${YELLOW}Скачайте его вручную со страницы релизов:${NC}"
+    echo -e "${CYAN}https://github.com{NC}"
+    echo -e "${YELLOW}Положите скачанный файл в папку ~/Документы и запустите Этап 3 снова.${NC}"
+    exit 1
+fi
 
-    echo -e "${CYAN}Загрузка: ${DIRECT_URL}${NC}"
-    if ! curl -fL -A "Mozilla/5.0" --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz" || ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
-        echo -e "${RED}GitHub не отдал архив DAMX напрямую. Скачайте DAMX-*.tar.xz через браузер в ~/Документы и запустите Этап 3 снова.${NC}"
-        exit 1
-    fi
+echo -e "${GREEN}Найден локальный архив: ${LOCAL_ARCHIVE}${NC}"
+cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
+
+if ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
+    echo -e "${RED}Файл ${LOCAL_ARCHIVE} повреждён или не является корректным архивом .tar.xz.${NC}"
+    exit 1
 fi
 
 STEP="распаковка и запуск установщика DAMX"
@@ -89,4 +90,5 @@ echo -e "${GREEN}  DIV ACER MANAGER MAX (DAMX) УСПЕШНО УСТАНОВЛЕ
 echo -e "${CYAN}  Подсказка: клавишу Nitro для запуска команды DAMX назначьте сами в  ${NC}"
 echo -e "${CYAN}  Параметры системы KDE -> Клавиатура -> Комбинации клавиш.           ${NC}"
 echo -e "${GREEN}======================================================================${NC}"
+
 
