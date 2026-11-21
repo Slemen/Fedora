@@ -54,7 +54,7 @@ sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly lib
 STEP="установка Steam и планировщиков"
 echo -e "\n${YELLOW}[2/6] Установка чистого Steam, system76-scheduler и earlyoom...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
-sudo dnf install -y steam system76-scheduler earlyoom fish nano-default-editor unzip
+sudo dnf install -y steam system76-scheduler earlyoom fish nano-default-editor unzip kate
 
 STEP="включение системных служб оптимизации"
 echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub.timer...${NC}"
