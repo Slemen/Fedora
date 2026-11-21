@@ -53,11 +53,12 @@ sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly lib
 
 STEP="установка Steam и планировщиков"
 echo -e "\n${YELLOW}[2/6] Установка чистого Steam, system76-scheduler и earlyoom...${NC}"
-sudo dnf install -y steam system76-scheduler earlyoom fish nano-default-source unzip
+sudo dnf copr enable -y eliasofwaffle/system76-scheduler
+sudo dnf install -y steam system76-scheduler earlyoom fish nano-default-editor unzip
 
 STEP="включение системных служб оптимизации"
 echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub.timer...${NC}"
-sudo systemctl enable --now system76-scheduler.service
+sudo systemctl enable --now com.system76.Scheduler.service
 sudo systemctl enable --now earlyoom.service
 ROOT_DEV=$(findmnt -n -o SOURCE / | sed 's/\[.*\]//')
 if [[ -n "$ROOT_DEV" ]]; then
@@ -115,7 +116,7 @@ sudo chmod +x /usr/local/bin/nvgame
 STEP="установка Starship, Nerd Font и настройка Fish / Konsole / Nano"
 echo -e "\n${YELLOW}[5/6] Установка Starship, JetBrainsMono Nerd Font и настройка Fish + Konsole...${NC}"
 if ! command -v starship >/dev/null 2>&1; then
-    curl -fsSL https://starship.rs/install.sh | sudo sh -s -- -y
+    curl -fsSL https://starship.rs | sudo sh -s -- -y
 fi
 
 FONT_DIR="$HOME/.local/share/fonts/JetBrainsMonoNerd"
@@ -123,7 +124,7 @@ if ! fc-list | grep -qi "JetBrainsMono Nerd Font"; then
     echo -e "${CYAN}Загрузка шрифта JetBrainsMono Nerd Font...${NC}"
     mkdir -p "$FONT_DIR"
     FONT_TMP="/tmp/JetBrainsMonoNerd.zip"
-    if curl -fsSL "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" -o "$FONT_TMP"; then
+    if curl -fsSL "https://github.com" -o "$FONT_TMP"; then
         unzip -oq "$FONT_TMP" "*.ttf" -d "$FONT_DIR" 2>/dev/null || true
         rm -f "$FONT_TMP"
         fc-cache -f "$FONT_DIR" >/dev/null 2>&1 || true
@@ -256,7 +257,7 @@ Color=204,204,198
 Color=248,248,242
 
 [Foreground]
-Color=204,204,204
+Color=204,204,198
 
 [ForegroundFaint]
 Color=160,160,160
