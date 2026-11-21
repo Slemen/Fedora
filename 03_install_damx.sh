@@ -60,7 +60,7 @@ if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
 else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
     REPO="PXDiv/Div-Acer-Manager-Max"
-DIRECT_URL="https://github.com{REPO}/releases/download/1.0.2-h1/DAMX-1.0.2.tar.xz"
+DIRECT_URL=https://github.com/PXDiv/Div-Acer-Manager-Max/releases/download/1.0.2-h1/DAMX-1.0.2.tar.xz.sha256
 
     echo -e "${CYAN}Загрузка: ${DIRECT_URL}${NC}"
     if ! curl -fL -A "Mozilla/5.0" --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz" || ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
