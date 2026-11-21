@@ -59,7 +59,9 @@ if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
     cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
 else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
-    DIRECT_URL="https://github.com"
+    REPO="PXDiv/Div-Acer-Manager-Max"
+DIRECT_URL="https://github.com{REPO}/releases/download/1.0.2-h1/DAMX-1.0.2.tar.xz"
+
     echo -e "${CYAN}Загрузка: ${DIRECT_URL}${NC}"
     if ! curl -fL -A "Mozilla/5.0" --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz" || ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
         echo -e "${RED}GitHub не отдал архив DAMX напрямую. Скачайте DAMX-*.tar.xz через браузер в ~/Документы и запустите Этап 3 снова.${NC}"
