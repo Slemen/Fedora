@@ -52,19 +52,23 @@ echo -e "\n${YELLOW}[2/3] Поиск локального архива DAMX ил
 rm -rf "$WORK_DAMX"
 mkdir -p "$WORK_DAMX"
 
-LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
+LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" "$HOME/Загрузки" "$HOME/Downloads" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
 
 if [[ -n "$LOCAL_ARCHIVE" && -f "$LOCAL_ARCHIVE" ]]; then
     echo -e "${GREEN}Найден локальный архив: ${LOCAL_ARCHIVE}${NC}"
     cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
 else
     echo -e "${CYAN}Локальный архив не найден, скачиваю последний релиз с GitHub...${NC}"
-    DOWNLOAD_URL=$(curl -fsSL "https://github.com" | grep -oE '"browser_download_url":\s*"[^"]+DAMX-[^"]+\.tar\.xz"' | head -n 1 | cut -d'"' -f4)
-    if [[ -z "$DOWNLOAD_URL" ]]; then
-        echo -e "${RED}Не удалось получить ссылку на релиз DAMX с GitHub.${NC}"
+    TAG_URL=$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com" || true)
+    TAG_VER="${TAG_URL##*/}"
+    BASE_VER="${TAG_VER%%-*}"
+    DIRECT_URL="https://github.com{TAG_VER}/DAMX-${BASE_VER}.tar.xz"
+
+    if ! curl -fL --progress-bar "$DIRECT_URL" -o "$WORK_DAMX/damx.tar.xz"; then
+        echo -e "${RED}Не удалось скачать архив DAMX (${DIRECT_URL}).${NC}"
+        echo -e "${YELLOW}Скачайте DAMX-*.tar.xz вручную в папку ~/Документы и запустите Этап 3 снова.${NC}"
         exit 1
     fi
-    curl -fsSL "$DOWNLOAD_URL" -o "$WORK_DAMX/damx.tar.xz"
 fi
 
 STEP="распаковка и запуск установщика DAMX"
