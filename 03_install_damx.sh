@@ -87,6 +87,9 @@ chmod +x "$INSTALL_SCRIPT"
 cd "$(dirname "$INSTALL_SCRIPT")"
 sudo ./"$(basename "$INSTALL_SCRIPT")" </dev/tty
 
+rm -f "$LOCAL_ARCHIVE"
+echo -e "${CYAN}Установочный архив удалён из папки Документы.${NC}"
+
 FINISHED=1
 echo -e "\n${GREEN}======================================================================${NC}"
 echo -e "${GREEN}  DIV ACER MANAGER MAX (DAMX) УСПЕШНО УСТАНОВЛЕН!                     ${NC}"
