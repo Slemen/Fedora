@@ -113,26 +113,15 @@ exec gamemoderun "$@"
 EOF
 sudo chmod +x /usr/local/bin/nvgame
 
-STEP="установка Starship, Nerd Font и настройка Fish / Konsole / Nano"
-echo -e "\n${YELLOW}[5/6] Установка Starship, JetBrainsMono Nerd Font и настройка Fish + Konsole...${NC}"
+STEP="установка Starship, шрифта JetBrains Mono и настройка Fish / Konsole / Nano"
+echo -e "\n${YELLOW}[5/6] Установка Starship, JetBrains Mono и настройка Fish + Konsole...${NC}"
 if ! command -v starship >/dev/null 2>&1; then
     sudo dnf copr enable -y atim/starship
     sudo dnf install -y starship
 fi
 
-FONT_DIR="$HOME/.local/share/fonts/JetBrainsMonoNerd"
-if ! fc-list | grep -qi "JetBrainsMono Nerd Font"; then
-    echo -e "${CYAN}Загрузка шрифта JetBrainsMono Nerd Font...${NC}"
-    mkdir -p "$FONT_DIR"
-    FONT_TMP="/tmp/JetBrainsMonoNerd.zip"
-    if curl -fsSL "https://github.com" -o "$FONT_TMP"; then
-        unzip -oq "$FONT_TMP" "*.ttf" -d "$FONT_DIR" 2>/dev/null || true
-        rm -f "$FONT_TMP"
-        fc-cache -f "$FONT_DIR" >/dev/null 2>&1 || true
-    else
-        echo -e "${YELLOW}Предупреждение: не удалось скачать JetBrainsMono Nerd Font, будет использован системный шрифт.${NC}"
-    fi
-fi
+sudo dnf install -y jetbrains-mono-fonts-all
+fc-cache -f >/dev/null 2>&1 || true
 
 mkdir -p "$HOME/.config/fish/functions" "$HOME/.local/share/konsole"
 
@@ -277,7 +266,7 @@ EOF
 cat << 'EOF' > "$HOME/.local/share/konsole/Fish.profile"
 [Appearance]
 ColorScheme=Newbl1nk
-Font=JetBrainsMono Nerd Font,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
+Font=JetBrains Mono,11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1
 
 [General]
 Command=/usr/bin/fish
