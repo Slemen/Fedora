@@ -28,7 +28,7 @@ else
 fi
 
 # 2. RPM Fusion
-if dnf repolist 2>/dev/null | grep -q "rpmfusion-free" && dnf repolist 2>/dev/null | grep -q "rpmfusion-nonfree"; then
+if dnf repolist 2>/dev/null | grep "rpmfusion-free" >/dev/null && dnf repolist 2>/dev/null | grep "rpmfusion-nonfree" >/dev/null; then
     ok "2. Репозитории RPM Fusion Free и Nonfree подключены"
 else
     fail "2. Репозитории RPM Fusion не активны"
@@ -56,7 +56,7 @@ else
 fi
 
 # 6. ZRAM
-if swapon --show 2>/dev/null | grep -q "zram"; then
+if swapon --show 2>/dev/null | grep "zram" >/dev/null; then
     ok "6. Сжатая память ZRAM активна"
 else
     fail "6. ZRAM не активен"
@@ -112,7 +112,7 @@ else
 fi
 
 # 13. Блокировка iTCO_wdt
-if grep -q "blacklist iTCO_wdt" /etc/modprobe.d/watchdog.conf 2>/dev/null && ! lsmod | grep -q "^iTCO_wdt"; then
+if grep -q "blacklist iTCO_wdt" /etc/modprobe.d/watchdog.conf 2>/dev/null && ! lsmod | grep "^iTCO_wdt" >/dev/null; then
     ok "13. Аппаратный таймер iTCO_wdt заблокирован"
 else
     fail "13. Модуль iTCO_wdt всё ещё загружен (проверьте перезагрузку)"
@@ -121,7 +121,7 @@ fi
 # 14. Профиль Konsole и шрифт JetBrains Mono
 if grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null && \
    [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
-   fc-list | grep -qi "JetBrains Mono"; then
+   fc-list : family | grep -i "JetBrains Mono" >/dev/null 2>&1; then
     ok "14. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrains Mono)"
 else
     fail "14. Профиль Konsole, схема Newbl1nk или шрифт JetBrains Mono не настроены"
@@ -143,7 +143,7 @@ else
 fi
 
 # 17. Div Acer Manager Max (DAMX)
-if command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]] || systemctl list-unit-files | grep -qi "damx"; then
+if command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]] || systemctl list-unit-files | grep -i "damx" >/dev/null; then
     ok "17. Div Acer Manager Max (DAMX) установлен (клавиша настраивается вручную)"
 else
     fail "17. Div Acer Manager Max (DAMX) не обнаружен"
