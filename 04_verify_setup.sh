@@ -118,13 +118,13 @@ else
     fail "13. Модуль iTCO_wdt всё ещё загружен (проверьте перезагрузку)"
 fi
 
-# 14. Профиль Konsole и шрифт Nerd Font
+# 14. Профиль Konsole и шрифт JetBrains Mono
 if grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null && \
    [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
-   fc-list | grep -qi "JetBrainsMono Nerd Font"; then
-    ok "14. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrainsMono Nerd Font)"
+   fc-list | grep -qi "JetBrains Mono"; then
+    ok "14. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrains Mono)"
 else
-    fail "14. Профиль Konsole, схема Newbl1nk или шрифт Nerd Font не настроены"
+    fail "14. Профиль Konsole, схема Newbl1nk или шрифт JetBrains Mono не настроены"
 fi
 
 # 15. Оболочка Fish и Starship
