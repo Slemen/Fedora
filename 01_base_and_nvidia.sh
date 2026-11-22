@@ -69,7 +69,12 @@ sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1 || true
 STEP="обновление системы и установка Timeshift"
 echo -e "\n${YELLOW}[3/8] Обновление системы и установка утилиты снимков Timeshift...${NC}"
 sudo dnf upgrade -y --refresh
-sudo dnf install -y timeshift
+sudo dnf install -y timeshift libdnf5-plugin-actions
+sudo mkdir -p /etc/dnf/libdnf5-plugins/actions.d
+sudo tee /etc/dnf/libdnf5-plugins/actions.d/timeshift.actions > /dev/null << 'EOF'
+pre_transaction:kernel-core:in::/usr/bin/timeshift --create --comments DNF5-Auto-Snap --tags O --scripted
+pre_transaction:akmod-nvidia:in::/usr/bin/timeshift --create --comments DNF5-Auto-Snap --tags O --scripted
+EOF
 
 STEP="установка графического стека NVIDIA, Vulkan и Intel Media Driver"
 echo -e "\n${YELLOW}[4/8] Установка драйвера NVIDIA, CUDA, Vulkan и intel-media-driver...${NC}"

@@ -35,10 +35,10 @@ else
 fi
 
 # 3. Timeshift
-if command -v timeshift >/dev/null 2>&1; then
-    ok "3. Утилита снимков Btrfs (Timeshift) установлена"
+if command -v timeshift >/dev/null 2>&1 && [[ -f /etc/dnf/libdnf5-plugins/actions.d/timeshift.actions ]]; then
+    ok "3. Timeshift и хук автоснимков DNF5 (ядро / NVIDIA) настроены"
 else
-    fail "3. Timeshift не установлен"
+    fail "3. Timeshift или хук автоснимков DNF5 не настроены"
 fi
 
 # 4. Графический стек (NVIDIA + intel-media-driver)
