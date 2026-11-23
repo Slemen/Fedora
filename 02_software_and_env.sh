@@ -54,8 +54,8 @@ sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly lib
 STEP="установка Steam, GameMode, планировщиков и словарей"
 echo -e "\n${YELLOW}[2/6] Установка Steam, GameMode, system76-scheduler, earlyoom и словарей...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
-sudo dnf install -y steam gamemode system76-scheduler earlyoom fish nano-default-editor unzip kate git gh aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
-sudo usermod -aG gamemode gamemode.i686 "$USER" 2>/dev/null || true
+sudo dnf install -y steam gamemode gamemode.i686 system76-scheduler earlyoom fish nano-default-editor unzip kate git gh aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
+sudo usermod -aG gamemode "$USER" 2>/dev/null || true
 
 STEP="включение системных служб оптимизации"
 echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub.timer...${NC}"
