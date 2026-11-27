@@ -1,11 +1,11 @@
-ЧЕК-ЛИСТ УСТАНОВКИ И НАСТРОЙКИ FEDORA KDE (ВЕРСИЯ v56 FINAL)
+ЧЕК-ЛИСТ УСТАНОВКИ И НАСТРОЙКИ FEDORA KDE (ВЕРСИЯ v57 FINAL)
 Оборудование: Acer Nitro V15-51
 ВНИМАНИЕ: Скрипты созданы автором под собственные нужды и конкретное железо
 (Acer Nitro V15-51). Автор не несёт ответственности за последствия их использования.
 ================================================================================
 
 КОМАНДА БЫСТРОГО ЗАПУСКА НА ЧИСТОЙ СИСТЕМЕ:
-curl -fsSL slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
+curl -fsSL https://slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
 
 РЕЗЕРВНАЯ КОМАНДА:
 curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /tmp/install.sh && bash /tmp/install.sh
@@ -32,8 +32,8 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
          - Доступ пользователя к драйверу синхронизации ntsync для Wine/Proton
          - Планировщик ввода-вывода none для NVMe SSD
 [ ] 1.7. Оптимизация SSD:
-         - Резервная копия /etc/fstab.bak, добавление опции noatime для разделов Btrfs
-           и перемонтирование (systemctl daemon-reload + mount -o remount)
+         - Резервная копия /etc/fstab.bak, универсальное добавление опции noatime
+           для разделов Btrfs и перемонтирование (systemctl daemon-reload + mount -o remount)
          - Ограничение размера логов systemd-journald до 150 МБ
 [ ] 1.8. Надёжная блокировка аппаратного таймера iTCO_wdt (modprobe.d + grubby).
 [ ] 1.9. ОБЯЗАТЕЛЬНАЯ ПЕРЕЗАГРУЗКА (пункт 5 в меню) и первый снимок в Timeshift
@@ -46,7 +46,7 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
          драйвера libva-nvidia-driver и утилит проверки (libva-utils, vdpauinfo, glx-utils).
 [ ] 2.2. Установка чистого Steam, GameMode (с добавлением пользователя в группу gamemode),
          словари орфографии (aspell, hunspell RU/EN) и базовых утилит.
-[ ] 2.3. Включение служб system76-scheduler, earlyoom и btrfs-scrub.timer.
+[ ] 2.3. Включение служб system76-scheduler, earlyoom и таймера btrfs-scrub.timer.
 [ ] 2.4. Настройка звука PipeWire (min-quantum = 1024), Wayland (NVD_BACKEND=direct)
          и исключение каталога ~/.local/share/Steam из индексатора файлов KDE Baloo.
 [ ] 2.5. Создание враппера /usr/local/bin/nvgame:
@@ -62,12 +62,15 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
 --------------------------------------------------------------------------------
 ЭТАП 3: УПРАВЛЕНИЕ НОУТБУКОМ ACER NITRO V15-51 (03_install_damx.sh)
 --------------------------------------------------------------------------------
-[ ] 3.1. Установка зависимостей DKMS (kernel-devel-$(uname -r)) и компиляция linuwu_sense
-         (с патчем strncpy -> strscpy для совместимости со свежими ядрами).
+[ ] 3.1. Проверка совпадения загруженного ядра с последним установленным, очистка
+         устаревших записей DKMS, установка kernel-devel-$(uname -r) и компиляция
+         linuwu_sense (с патчем strncpy -> strscpy для совместимости со свежими ядрами).
 [ ] 3.2. Поиск локального архива DAMX-*.tar.xz в ~/Документы, установка и автоочистка.
 [ ] 3.3. Ручная привязка кнопки Nitro на команду DAMX в настройках KDE Plasma.
 
 --------------------------------------------------------------------------------
 ЭТАП 4: ФИНАЛЬНАЯ ДИАГНОСТИКА (04_verify_setup.sh)
 --------------------------------------------------------------------------------
-[ ] 4.1. Проверка всех 20 пунктов конфигурации (ожидаемый результат: УСПЕШНО: 20 | ОШИБОК: 0).
+[ ] 4.1. Проверка всех 20 пунктов конфигурации, включая активность DAMX, модуля
+         ядра linuwu_sense и шрифта JetBrainsMono Nerd Font
+         (ожидаемый результат: УСПЕШНО: 20 | ОШИБОК: 0).
