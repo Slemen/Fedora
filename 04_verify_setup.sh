@@ -35,10 +35,10 @@ else
 fi
 
 # 3. Timeshift
-if command -v timeshift >/dev/null 2>&1 && [[ -f /etc/dnf/libdnf5-plugins/actions.d/timeshift.actions ]]; then
-    ok "3. Timeshift и хук автоснимков DNF5 (ядро / NVIDIA) настроены"
+if command -v timeshift >/dev/null 2>&1; then
+    ok "3. Утилита снимков Btrfs (Timeshift) установлена"
 else
-    fail "3. Timeshift или хук автоснимков DNF5 не настроены"
+    fail "3. Timeshift не установлен"
 fi
 
 # 4. Графический стек (NVIDIA + intel-media-driver)
@@ -136,14 +136,14 @@ else
     fail "15. Модуль iTCO_wdt всё ещё загружен (проверьте перезагрузку)"
 fi
 
-# 16. Профиль Konsole и шрифт JetBrains Mono (размер 10)
+# 16. Профиль Konsole и шрифт JetBrainsMono Nerd Font (размер 10)
 if grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null && \
    [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
    grep -q ",10," "$HOME/.local/share/konsole/Fish.profile" 2>/dev/null && \
-   fc-list : family | grep -i "JetBrains" >/dev/null 2>&1; then
-    ok "16. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrains 10pt)"
+   fc-list : family | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+    ok "16. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrainsMono Nerd Font 10pt)"
 else
-    fail "16. Профиль Konsole, схема Newbl1nk или шрифт JetBrains не настроены"
+    fail "16. Профиль Konsole, схема Newbl1nk или шрифт JetBrainsMono Nerd Font не настроены"
 fi
 
 # 17. Оболочка Fish и Starship (левый индикатор времени с минутами и секундами)
@@ -162,11 +162,11 @@ else
     fail "18. Файл .nanorc отсутствует у пользователя или root"
 fi
 
-# 19. Div Acer Manager Max (DAMX)
-if command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]] || systemctl list-unit-files | grep -i "damx" >/dev/null; then
-    ok "19. Div Acer Manager Max (DAMX) установлен (клавиша настраивается вручную)"
+# 19. Div Acer Manager Max (DAMX) и модуль ядра linuwu_sense
+if (command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]]) && lsmod | grep -q "^linuwu_sense"; then
+    ok "19. Div Acer Manager Max (DAMX) и модуль ядра linuwu_sense активны"
 else
-    fail "19. Div Acer Manager Max (DAMX) не обнаружен"
+    fail "19. DAMX не установлен или модуль ядра linuwu_sense не загружен"
 fi
 
 # 20. Состояние служб systemd

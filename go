@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ==============================================================================
 # БЫСТРЫЙ ЗАГРУЗЧИК УСТАНОВЩИКА FEDORA KDE ДЛЯ ACER NITRO V15-51
-# Запуск: curl -fsSL slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
+# Запуск: curl -fsSL https://slemen.github.io/Fedora/go -o /tmp/go && bash /tmp/go
 # ==============================================================================
 
 TARGET="/tmp/slemen_fedora_install.sh"

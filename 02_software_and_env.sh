@@ -54,7 +54,7 @@ sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly lib
 STEP="установка Steam, GameMode, планировщиков и словарей"
 echo -e "\n${YELLOW}[2/6] Установка Steam, GameMode, system76-scheduler, earlyoom и словарей...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
-sudo dnf install -y steam gamemode gamemode.i686 system76-scheduler earlyoom fish nano-default-editor unzip kate git gh aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
+sudo dnf install -y steam gamemode system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
 sudo usermod -aG gamemode "$USER" 2>/dev/null || true
 
 STEP="включение системных служб оптимизации"
@@ -64,7 +64,7 @@ sudo systemctl enable --now earlyoom.service
 ROOT_DEV=$(findmnt -n -o SOURCE / | sed 's/\[.*\]//')
 if [[ -n "$ROOT_DEV" ]]; then
     UNIT_ESC=$(systemd-escape -p "$ROOT_DEV")
-    sudo systemctl enable --now "btrfs-scrub@${UNIT_ESC}.timer" 2>/dev/null || true
+    sudo systemctl enable "btrfs-scrub@${UNIT_ESC}.timer" 2>/dev/null || true
 fi
 
 STEP="настройка звука PipeWire, Wayland и враппера nvgame"
@@ -87,6 +87,7 @@ EOF
 # Исключение каталога Steam из индексации файлов KDE Baloo (защита от фоновых фризов)
 if command -v balooctl6 >/dev/null 2>&1; then
     balooctl6 config add excludeFolders "$HOME/.local/share/Steam" 2>/dev/null || true
+    balooctl6 restart 2>/dev/null || true
 fi
 
 sudo tee /usr/local/bin/nvgame > /dev/null << 'EOF'

@@ -35,6 +35,15 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
+# Проверка совпадения запущенного ядра с последним установленным в системе
+LATEST_INSTALLED_KERNEL=$(rpm -q --last kernel-core 2>/dev/null | head -n 1 | awk '{print $1}' | sed 's/^kernel-core-//' || true)
+RUNNING_KERNEL=$(uname -r)
+if [[ -n "$LATEST_INSTALLED_KERNEL" && "$LATEST_INSTALLED_KERNEL" != "$RUNNING_KERNEL" ]]; then
+    echo -e "${RED}Ошибка: система работает на старом ядре (${RUNNING_KERNEL}), но установлено новое (${LATEST_INSTALLED_KERNEL}).${NC}"
+    echo -e "${YELLOW}Сначала перезагрузите ноутбук (пункт 5 в меню), чтобы загрузилось новое ядро, и запустите Этап 3 снова.${NC}"
+    exit 1
+fi
+
 sudo -v
 ( while sleep 50; do sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
 SUDO_PID=$!
@@ -44,8 +53,8 @@ echo -e "${CYAN}  ЭТАП 3: УСТАНОВКА DIV ACER MANAGER MAX (DAMX) (AC
 echo -e "${CYAN}======================================================================${NC}"
 
 STEP="установка сборочных зависимостей DKMS"
-echo -e "\n${YELLOW}[1/3] Установка зависимостей для сборки модуля ядра linuwu_sense ($(uname -r))...${NC}"
-sudo dnf install -y dkms "kernel-devel-$(uname -r)" kernel-headers gcc make git tar xz
+echo -e "\n${YELLOW}[1/3] Установка зависимостей для сборки модуля ядра linuwu_sense (${RUNNING_KERNEL})...${NC}"
+sudo dnf install -y dkms "kernel-devel-${RUNNING_KERNEL}" kernel-headers gcc make git tar xz
 
 STEP="поиск локального архива DAMX"
 echo -e "\n${YELLOW}[2/3] Поиск архива DAMX-*.tar.xz в папке Документы...${NC}"
@@ -69,9 +78,16 @@ if ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
     exit 1
 fi
 
-STEP="распаковка, патч ядра и запуск установщика DAMX"
+STEP="распаковка, очистка старого DKMS и запуск установщика DAMX"
 echo -e "\n${YELLOW}[3/3] Распаковка и установка Div Acer Manager Max...${NC}"
 tar -xJf "$WORK_DAMX/damx.tar.xz" -C "$WORK_DAMX"
+
+# Очистка предыдущих регистраций linuwu_sense в DKMS для безопасной переустановки
+if command -v dkms >/dev/null 2>&1; then
+    for old_ver in $(dkms status 2>/dev/null | awk -F'[,:/]' '/linuwu_sense/ {gsub(/ /, "", $2); print $2}' | sort -u); do
+        sudo dkms remove "linuwu_sense/${old_ver}" --all 2>/dev/null || true
+    done
+fi
 
 # Патч совместимости с ядром Linux 7.3+ (замена удалённой функции strncpy на strscpy)
 find "$WORK_DAMX" -name "linuwu_sense.c" -exec sed -i 's/\bstrncpy(/strscpy(/g' {} +

@@ -69,12 +69,7 @@ sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1 || true
 STEP="обновление системы и установка Timeshift"
 echo -e "\n${YELLOW}[3/8] Обновление системы и установка утилиты снимков Timeshift...${NC}"
 sudo dnf upgrade -y --refresh
-sudo dnf install -y timeshift libdnf5-plugin-actions
-sudo mkdir -p /etc/dnf/libdnf5-plugins/actions.d
-sudo tee /etc/dnf/libdnf5-plugins/actions.d/timeshift.actions > /dev/null << 'EOF'
-pre_transaction:kernel-core:in::/usr/bin/timeshift --create --comments DNF5-Auto-Snap --tags O --scripted
-pre_transaction:akmod-nvidia:in::/usr/bin/timeshift --create --comments DNF5-Auto-Snap --tags O --scripted
-EOF
+sudo dnf install -y timeshift
 
 STEP="установка графического стека NVIDIA, Vulkan и Intel Media Driver"
 echo -e "\n${YELLOW}[4/8] Установка драйвера NVIDIA, CUDA, Vulkan и intel-media-driver...${NC}"
@@ -138,7 +133,11 @@ STEP="оптимизация SSD (noatime для Btrfs и лимит логов 
 echo -e "\n${YELLOW}[7/8] Оптимизация SSD (noatime в fstab и лимит journald 150 МБ)...${NC}"
 sudo cp -n /etc/fstab /etc/fstab.bak
 if grep -q "btrfs" /etc/fstab && ! grep -q "noatime" /etc/fstab; then
-    sudo sed -i '/btrfs/ s/compress=zstd:1/compress=zstd:1,noatime/g' /etc/fstab
+    if grep -q "subvol=" /etc/fstab; then
+        sudo sed -i '/btrfs/ s/\(subvol=[^,[:space:]]*\)/\1,noatime/g' /etc/fstab
+    else
+        sudo sed -i '/btrfs/ s/defaults/defaults,noatime/g' /etc/fstab
+    fi
     sudo systemctl daemon-reload
     sudo mount -o remount / 2>/dev/null || true
     sudo mount -o remount /home 2>/dev/null || true

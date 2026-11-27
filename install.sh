@@ -42,10 +42,10 @@ while true; do
     clear
     S1="[ ]"; command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && S1="${GREEN}[✓]${NC}"
     S2="[ ]"; [[ -x /usr/local/bin/nvgame ]] && S2="${GREEN}[✓]${NC}"
-    S3="[ ]"; (command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]] || systemctl list-unit-files | grep -qi "damx") && S3="${GREEN}[✓]${NC}"
+    S3="[ ]"; (command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]]) && lsmod | grep -q "^linuwu_sense" && S3="${GREEN}[✓]${NC}"
 
     echo -e "${CYAN}======================================================================${NC}"
-    echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v56)       ${NC}"
+    echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v57)       ${NC}"
     echo -e "${CYAN}======================================================================${NC}"
     echo -e "  ${GREEN}1)${NC} ${S1} Этап 1: База, RPM Fusion, Timeshift, NVIDIA, sysctl, Wi-Fi, SSD"
     echo -e "  ${GREEN}2)${NC} ${S2} Этап 2: Кодеки, Steam, GameMode, nvgame, PipeWire и Fish"
