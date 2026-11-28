@@ -16,6 +16,10 @@ FAIL=0
 ok()   { echo -e "${GREEN}[ OK ]${NC} $1"; ((++PASS)); }
 fail() { echo -e "${RED}[FAIL]${NC} $1"; ((++FAIL)); }
 
+TARGET_USER="${SUDO_USER:-$USER}"
+USER_HOME="$(getent passwd "$TARGET_USER" 2>/dev/null | cut -d: -f6)"
+USER_HOME="${USER_HOME:-$HOME}"
+
 echo -e "${CYAN}======================================================================${NC}"
 echo -e "${CYAN}  ДИАГНОСТИКА СИСТЕМЫ FEDORA KDE ДЛЯ ACER NITRO V15-51 (20 ПУНКТОВ)   ${NC}"
 echo -e "${CYAN}======================================================================${NC}\n"
@@ -112,8 +116,8 @@ else
 fi
 
 # 13. PipeWire и Wayland
-if [[ -f "$HOME/.config/pipewire/pipewire.conf.d/99-gaming-latency.conf" ]] && \
-   [[ -f "$HOME/.config/environment.d/wayland-nvidia.conf" ]]; then
+if [[ -f "$USER_HOME/.config/pipewire/pipewire.conf.d/99-gaming-latency.conf" ]] && \
+   [[ -f "$USER_HOME/.config/environment.d/wayland-nvidia.conf" ]]; then
     ok "13. Конфигурации PipeWire (min-quantum=1024) и Wayland созданы"
 else
     fail "13. Отсутствуют конфиги PipeWire или Wayland"
@@ -137,10 +141,10 @@ else
 fi
 
 # 16. Профиль Konsole и шрифт JetBrainsMono Nerd Font (размер 10)
-if grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null && \
-   [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
-   grep -q ",10," "$HOME/.local/share/konsole/Fish.profile" 2>/dev/null && \
-   fc-list : family | grep -qi "JetBrainsMono Nerd Font"; then
+if grep -q "DefaultProfile=Fish.profile" "$USER_HOME/.config/konsolerc" 2>/dev/null && \
+   [[ -f "$USER_HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
+   grep -q ",10," "$USER_HOME/.local/share/konsole/Fish.profile" 2>/dev/null && \
+   (fc-list : family | grep -qi "JetBrainsMono Nerd Font" || sudo -u "$TARGET_USER" fc-list : family 2>/dev/null | grep -qi "JetBrainsMono Nerd Font"); then
     ok "16. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrainsMono Nerd Font 10pt)"
 else
     fail "16. Профиль Konsole, схема Newbl1nk или шрифт JetBrainsMono Nerd Font не настроены"
@@ -148,15 +152,15 @@ fi
 
 # 17. Оболочка Fish и Starship (левый индикатор времени с минутами и секундами)
 if command -v fish >/dev/null 2>&1 && command -v starship >/dev/null 2>&1 && \
-   grep -q "_starship_fish_prompt" "$HOME/.config/fish/config.fish" 2>/dev/null && \
-   grep -q "total_s" "$HOME/.config/fish/config.fish" 2>/dev/null; then
+   grep -q "_starship_fish_prompt" "$USER_HOME/.config/fish/config.fish" 2>/dev/null && \
+   grep -q "total_s" "$USER_HOME/.config/fish/config.fish" 2>/dev/null; then
     ok "17. Терминал: Fish, Starship и левый индикатор времени (мин/сек) настроены"
 else
     fail "17. Оболочка Fish или индикатор времени (мин/сек) не настроены"
 fi
 
 # 18. Конфигурация Nano
-if [[ -f "$HOME/.nanorc" ]] && sudo test -f /root/.nanorc; then
+if [[ -f "$USER_HOME/.nanorc" ]] && sudo test -f /root/.nanorc; then
     ok "18. Конфигурация Nano применена для пользователя и root"
 else
     fail "18. Файл .nanorc отсутствует у пользователя или root"
