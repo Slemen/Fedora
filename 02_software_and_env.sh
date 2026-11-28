@@ -59,7 +59,7 @@ sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly lib
 STEP="установка Steam, GameMode, планировщиков и словарей"
 echo -e "\n${YELLOW}[2/6] Установка Steam, GameMode, system76-scheduler, earlyoom и словарей...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
-sudo dnf install -y steam gamemode system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
+sudo dnf install -y steam gamemode system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru android-tools
 sudo usermod -aG gamemode "$USER"
 
 STEP="включение системных служб оптимизации"
