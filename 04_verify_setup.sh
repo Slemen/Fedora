@@ -141,10 +141,11 @@ else
 fi
 
 # 16. Профиль Konsole и шрифт JetBrainsMono Nerd Font (размер 10)
+FONTS_LIST="$(fc-list : family 2>/dev/null || sudo -u "$TARGET_USER" fc-list : family 2>/dev/null || true)"
 if grep -q "DefaultProfile=Fish.profile" "$USER_HOME/.config/konsolerc" 2>/dev/null && \
    [[ -f "$USER_HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
    grep -q ",10," "$USER_HOME/.local/share/konsole/Fish.profile" 2>/dev/null && \
-   (fc-list : family | grep -qi "JetBrainsMono Nerd Font" || sudo -u "$TARGET_USER" fc-list : family 2>/dev/null | grep -qi "JetBrainsMono Nerd Font"); then
+   grep -qi "JetBrainsMono Nerd Font" <<< "$FONTS_LIST"; then
     ok "16. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrainsMono Nerd Font 10pt)"
 else
     fail "16. Профиль Konsole, схема Newbl1nk или шрифт JetBrainsMono Nerd Font не настроены"
