@@ -68,7 +68,12 @@ echo -e "\n${YELLOW}[2/3] Поиск архива DAMX-*.tar.xz в папке Д
 rm -rf "$WORK_DAMX"
 mkdir -p "$WORK_DAMX"
 
-LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
+ARCHIVE_STORE="$HOME/Документы/damx-archives"
+LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -name "DAMX-*.tar.xz" ! -path "$ARCHIVE_STORE/*" 2>/dev/null | head -n 1 || true)
+
+if [[ -z "$LOCAL_ARCHIVE" || ! -f "$LOCAL_ARCHIVE" ]]; then
+    LOCAL_ARCHIVE=$(find "$ARCHIVE_STORE" -maxdepth 2 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
+fi
 
 if [[ -z "$LOCAL_ARCHIVE" || ! -f "$LOCAL_ARCHIVE" ]]; then
     echo -e "${RED}Архив DAMX-*.tar.xz не найден в ~/Документы (или ~/Documents).${NC}" >&2
@@ -114,8 +119,11 @@ chmod +x "$INSTALL_SCRIPT"
 cd "$(dirname "$INSTALL_SCRIPT")"
 sudo ./"$(basename "$INSTALL_SCRIPT")" </dev/tty
 
-rm -f "$LOCAL_ARCHIVE"
-echo -e "${CYAN}Установочный архив удалён из папки Документы.${NC}"
+mkdir -p "$ARCHIVE_STORE"
+if [[ "$(dirname "$LOCAL_ARCHIVE")" != "$ARCHIVE_STORE" ]]; then
+    mv -f "$LOCAL_ARCHIVE" "$ARCHIVE_STORE/"
+    echo -e "${CYAN}Архив перемещён в ${ARCHIVE_STORE} для последующей пересборки при обновлении ядра.${NC}"
+fi
 
 FINISHED=1
 echo -e "\n${GREEN}======================================================================${NC}"

@@ -60,16 +60,18 @@ STEP="установка Steam, GameMode, планировщиков и слов
 echo -e "\n${YELLOW}[2/6] Установка Steam, GameMode, system76-scheduler, earlyoom и словарей...${NC}"
 sudo dnf copr enable -y eliasofwaffle/system76-scheduler
 sudo dnf install -y steam gamemode system76-scheduler earlyoom fish nano-default-editor unzip kate aspell aspell-en aspell-ru hunspell hunspell-en hunspell-ru
-sudo usermod -aG gamemode "$USER" 2>/dev/null || true
+sudo usermod -aG gamemode "$USER"
 
 STEP="включение системных служб оптимизации"
-echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub.timer...${NC}"
+echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub@.timer (если доступен)...${NC}"
 sudo systemctl enable --now com.system76.Scheduler.service
 sudo systemctl enable --now earlyoom.service
-ROOT_DEV=$(findmnt -n -o SOURCE / | sed 's/\[.*\]//' || true)
-if [[ -n "$ROOT_DEV" ]]; then
-    UNIT_ESC=$(systemd-escape -p "$ROOT_DEV")
-    sudo systemctl enable "btrfs-scrub@${UNIT_ESC}.timer" 2>/dev/null || true
+if systemctl list-unit-files "btrfs-scrub@.timer" >/dev/null 2>&1; then
+    ROOT_DEV=$(findmnt -n -o SOURCE / | sed 's/\[.*\]//')
+    if [[ -n "$ROOT_DEV" ]]; then
+        UNIT_ESC=$(systemd-escape -p "$ROOT_DEV")
+        sudo systemctl enable "btrfs-scrub@${UNIT_ESC}.timer"
+    fi
 fi
 
 STEP="настройка звука PipeWire, Wayland и враппера nvgame"
@@ -90,8 +92,8 @@ NVD_BACKEND=direct
 EOF
 
 if command -v balooctl6 >/dev/null 2>&1; then
-    balooctl6 config add excludeFolders "$HOME/.local/share/Steam" 2>/dev/null || true
-    balooctl6 restart 2>/dev/null || true
+    balooctl6 config add excludeFolders "$HOME/.local/share/Steam" || true
+    balooctl6 restart || true
 fi
 
 sudo tee /usr/local/bin/nvgame > /dev/null << 'EOF'
@@ -130,13 +132,13 @@ fi
 sudo dnf install -y jetbrains-mono-fonts-all
 mkdir -p "$HOME/.local/share/fonts/JetBrainsMonoNerd"
 if ! fc-list : family | grep -qi "JetBrainsMono Nerd Font"; then
-    curl -fsSL --retry 3 "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" -o /tmp/JetBrainsMonoNerd.zip || true
+    curl -fsSL --retry 3 "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" -o /tmp/JetBrainsMonoNerd.zip
     if [[ -f /tmp/JetBrainsMonoNerd.zip ]]; then
-        unzip -oq /tmp/JetBrainsMonoNerd.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNerd" "*.ttf" 2>/dev/null || true
+        unzip -oq /tmp/JetBrainsMonoNerd.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNerd" "*.ttf"
         rm -f /tmp/JetBrainsMonoNerd.zip
     fi
 fi
-fc-cache -f >/dev/null 2>&1 || true
+fc-cache -f >/dev/null 2>&1
 
 FONT_NAME="JetBrains Mono"
 if fc-list : family | grep -qi "JetBrainsMono Nerd Font"; then
@@ -303,7 +305,7 @@ Name=Fish
 Parent=FALLBACK/
 EOF
 
-kwriteconfig6 --file "$HOME/.config/konsolerc" --group "Desktop Entry" --key "DefaultProfile" "Fish.profile" 2>/dev/null || true
+kwriteconfig6 --file "$HOME/.config/konsolerc" --group "Desktop Entry" --key "DefaultProfile" "Fish.profile" || true
 if ! grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null; then
     printf "\n[Desktop Entry]\nDefaultProfile=Fish.profile\n" >> "$HOME/.config/konsolerc"
 fi

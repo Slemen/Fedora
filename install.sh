@@ -41,7 +41,7 @@ run_step() {
 while true; do
     clear
     S1="[ ]"
-    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && [[ -f /etc/sysctl.d/99-cachyos-tweaks.conf ]]; then
+    if rpm -q akmod-nvidia >/dev/null 2>&1 && [[ -f /etc/sysctl.d/99-cachyos-tweaks.conf ]]; then
         S1="${GREEN}[✓]${NC}"
     fi
 

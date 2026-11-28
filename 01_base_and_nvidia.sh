@@ -76,7 +76,7 @@ sudo dnf install -y timeshift
 STEP="установка графического стека NVIDIA, Vulkan и Intel Media Driver"
 echo -e "\n${YELLOW}[4/8] Установка драйвера NVIDIA, CUDA, Vulkan и intel-media-driver...${NC}"
 sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda vulkan-loader vulkan-tools intel-media-driver
-sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service 2>/dev/null || true
+sudo systemctl enable nvidia-suspend.service nvidia-hibernate.service nvidia-resume.service
 
 STEP="применение ядерных твиков sysctl, CAKE + BBR и отключение энергосбережения Wi-Fi"
 echo -e "\n${YELLOW}[5/8] Применение ядерных твиков sysctl (CAKE + BBR) и Wi-Fi powersave off...${NC}"
@@ -84,11 +84,11 @@ sudo tee /etc/modules-load.d/network-tuning.conf > /dev/null << 'EOF'
 tcp_bbr
 sch_cake
 EOF
-sudo modprobe tcp_bbr 2>/dev/null || true
-sudo modprobe sch_cake 2>/dev/null || true
+sudo modprobe tcp_bbr
+sudo modprobe sch_cake
 
 sudo tee /etc/sysctl.d/99-cachyos-tweaks.conf > /dev/null << 'EOF'
-# Память, ZRAM и защита от фоновых микрофризов (CachyOS / SteamOS)
+# Память, работа со свопом/ZRAM и защита от фоновых микрофризов (CachyOS / SteamOS)
 vm.swappiness = 180
 vm.vfs_cache_pressure = 50
 vm.dirty_bytes = 268435456
@@ -110,7 +110,7 @@ net.core.rmem_max = 16777216
 net.core.wmem_max = 16777216
 net.core.netdev_max_backlog = 16384
 EOF
-sudo sysctl --system || true
+sudo sysctl --system
 
 # Отключение энергосбережения Wi-Fi для стабильного пинга в онлайн-играх
 sudo mkdir -p /etc/NetworkManager/conf.d
@@ -118,7 +118,7 @@ sudo tee /etc/NetworkManager/conf.d/wifi-powersave-off.conf > /dev/null << 'EOF'
 [connection]
 wifi.powersave = 2
 EOF
-sudo systemctl restart NetworkManager 2>/dev/null || true
+sudo systemctl restart NetworkManager
 
 STEP="применение игровых правил udev (ntsync и планировщик I/O NVMe)"
 echo -e "\n${YELLOW}[6/8] Применение правил udev для ntsync и I/O NVMe (CachyOS)...${NC}"
@@ -166,7 +166,7 @@ PYEOF
 sudo systemctl daemon-reload
 for mp in / /home; do
     if findmnt -no TARGET "$mp" >/dev/null 2>&1; then
-        sudo mount -o remount "$mp" 2>/dev/null || true
+        sudo mount -o remount "$mp"
     fi
 done
 
@@ -187,9 +187,9 @@ install iTCO_wdt /bin/true
 install iTCO_vendor_support /bin/true
 EOF
 
-CURRENT_KARGS=$(sudo grubby --info=DEFAULT 2>/dev/null | awk -F= '/^args=/{print $2}' || true)
+CURRENT_KARGS=$(sudo grubby --info=DEFAULT | awk -F= '/^args=/{print $2}')
 if [[ "$CURRENT_KARGS" != *"modprobe.blacklist=iTCO_wdt,iTCO_vendor_support"* ]]; then
-    sudo grubby --update-kernel=ALL --args="modprobe.blacklist=iTCO_wdt,iTCO_vendor_support" || true
+    sudo grubby --update-kernel=ALL --args="modprobe.blacklist=iTCO_wdt,iTCO_vendor_support"
 fi
 
 FINISHED=1

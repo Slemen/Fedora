@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
          - Сетевой планировщик CAKE + BBR (net.core.default_qdisc = cake)
          - Отключение энергосбережения Wi-Fi (/etc/NetworkManager/conf.d/wifi-powersave-off.conf)
          - Игровые твики: kernel.split_lock_mitigate = 0, vm.compaction_proactiveness = 0
-         - Память и лимиты: vm.swappiness = 180, vm.max_map_count = 2147483642, fs.file-max = 2097152
+         - Память, своп/ZRAM и лимиты: vm.swappiness = 180, vm.max_map_count = 2147483642, fs.file-max = 2097152
 [ ] 1.6. Правила udev (/etc/udev/rules.d/99-gaming-optimizations.rules):
          - Доступ пользователя к драйверу синхронизации ntsync для Wine/Proton
          - Планировщик ввода-вывода none для NVMe SSD
@@ -46,7 +46,8 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
          драйвера libva-nvidia-driver и утилит проверки (libva-utils, vdpauinfo, glx-utils).
 [ ] 2.2. Установка чистого Steam, GameMode (с добавлением пользователя в группу gamemode),
          словари орфографии (aspell, hunspell RU/EN) и базовых утилит.
-[ ] 2.3. Включение служб system76-scheduler, earlyoom и таймера btrfs-scrub.timer.
+[ ] 2.3. Включение служб system76-scheduler, earlyoom и шаблонного таймера
+         btrfs-scrub@ (если поддерживается установленным пакетом).
 [ ] 2.4. Настройка звука PipeWire (min-quantum = 1024), Wayland (NVD_BACKEND=direct)
          и исключение каталога ~/.local/share/Steam из индексатора файлов KDE Baloo.
 [ ] 2.5. Создание враппера /usr/local/bin/nvgame:
@@ -65,7 +66,9 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
 [ ] 3.1. Проверка совпадения загруженного ядра с последним установленным, очистка
          устаревших записей DKMS, установка kernel-devel-$(uname -r) и компиляция
          linuwu_sense (с патчем strncpy -> strscpy для совместимости со свежими ядрами).
-[ ] 3.2. Поиск локального архива DAMX-*.tar.xz в ~/Документы, установка и автоочистка.
+[ ] 3.2. Поиск локального архива DAMX-*.tar.xz в ~/Документы (или резервно в
+         ~/Документы/damx-archives), установка и перенос архива в ~/Документы/damx-archives
+         для последующей пересборки при обновлении ядра.
 [ ] 3.3. Ручная привязка кнопки Nitro на команду DAMX в настройках KDE Plasma.
 
 --------------------------------------------------------------------------------
