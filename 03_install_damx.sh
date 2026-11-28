@@ -16,10 +16,13 @@ NC='\033[0m'
 STEP="подготовка"
 FINISHED=0
 SUDO_PID=""
+PARENT_PID=$$
 WORK_DAMX="/tmp/damx_install"
+ORIG_DIR="$(pwd)"
 
 on_exit() {
     local rc=$?
+    cd "$ORIG_DIR" 2>/dev/null || cd /tmp
     if [[ -n "$SUDO_PID" ]]; then
         kill "$SUDO_PID" 2>/dev/null || true
     fi
@@ -31,21 +34,25 @@ on_exit() {
 trap on_exit EXIT
 
 if [[ $EUID -eq 0 ]]; then
-    echo -e "${RED}Ошибка: не запускайте скрипт от имени root (без sudo).${NC}"
+    echo -e "${RED}Ошибка: не запускайте скрипт от имени root (без sudo).${NC}" >&2
     exit 1
 fi
 
-# Проверка совпадения запущенного ядра с последним установленным в системе
+if pgrep -x "dnf" >/dev/null 2>&1 || pgrep -x "dnf5" >/dev/null 2>&1; then
+    echo -e "${RED}Ошибка: пакетный менеджер DNF сейчас занят другим процессом. Дождитесь завершения и повторите.${NC}" >&2
+    exit 1
+fi
+
 LATEST_INSTALLED_KERNEL=$(rpm -q --last kernel-core 2>/dev/null | head -n 1 | awk '{print $1}' | sed 's/^kernel-core-//' || true)
 RUNNING_KERNEL=$(uname -r)
 if [[ -n "$LATEST_INSTALLED_KERNEL" && "$LATEST_INSTALLED_KERNEL" != "$RUNNING_KERNEL" ]]; then
-    echo -e "${RED}Ошибка: система работает на старом ядре (${RUNNING_KERNEL}), но установлено новое (${LATEST_INSTALLED_KERNEL}).${NC}"
-    echo -e "${YELLOW}Сначала перезагрузите ноутбук (пункт 5 в меню), чтобы загрузилось новое ядро, и запустите Этап 3 снова.${NC}"
+    echo -e "${RED}Ошибка: система работает на старом ядре (${RUNNING_KERNEL}), но установлено новое (${LATEST_INSTALLED_KERNEL}).${NC}" >&2
+    echo -e "${YELLOW}Сначала перезагрузите ноутбук (пункт 5 в меню), чтобы загрузилось новое ядро, и запустите Этап 3 снова.${NC}" >&2
     exit 1
 fi
 
 sudo -v
-( while sleep 50; do sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
+( while kill -0 "$PARENT_PID" 2>/dev/null; do sleep 50; sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
 SUDO_PID=$!
 
 echo -e "${CYAN}======================================================================${NC}"
@@ -64,9 +71,9 @@ mkdir -p "$WORK_DAMX"
 LOCAL_ARCHIVE=$(find "$HOME/Документы" "$HOME/Documents" -maxdepth 3 -name "DAMX-*.tar.xz" 2>/dev/null | head -n 1 || true)
 
 if [[ -z "$LOCAL_ARCHIVE" || ! -f "$LOCAL_ARCHIVE" ]]; then
-    echo -e "${RED}Архив DAMX-*.tar.xz не найден в ~/Документы (или ~/Documents).${NC}"
-    echo -e "${YELLOW}Скачайте архив вручную из официального репозитория PXDiv / Div-Acer-Manager-Max (раздел Releases на GitHub).${NC}"
-    echo -e "${YELLOW}Положите скачанный файл в папку ~/Документы и запустите Этап 3 снова.${NC}"
+    echo -e "${RED}Архив DAMX-*.tar.xz не найден в ~/Документы (или ~/Documents).${NC}" >&2
+    echo -e "${YELLOW}Скачайте архив вручную из официального репозитория PXDiv / Div-Acer-Manager-Max (раздел Releases на GitHub).${NC}" >&2
+    echo -e "${YELLOW}Положите скачанный файл в папку ~/Документы и запустите Этап 3 снова.${NC}" >&2
     exit 1
 fi
 
@@ -74,7 +81,7 @@ echo -e "${GREEN}Найден локальный архив: ${LOCAL_ARCHIVE}${N
 cp "$LOCAL_ARCHIVE" "$WORK_DAMX/damx.tar.xz"
 
 if ! xz -t "$WORK_DAMX/damx.tar.xz" >/dev/null 2>&1; then
-    echo -e "${RED}Файл ${LOCAL_ARCHIVE} повреждён или не является корректным архивом .tar.xz.${NC}"
+    echo -e "${RED}Файл ${LOCAL_ARCHIVE} повреждён или не является корректным архивом .tar.xz.${NC}" >&2
     exit 1
 fi
 
@@ -82,15 +89,16 @@ STEP="распаковка, очистка старого DKMS и запуск �
 echo -e "\n${YELLOW}[3/3] Распаковка и установка Div Acer Manager Max...${NC}"
 tar -xJf "$WORK_DAMX/damx.tar.xz" -C "$WORK_DAMX"
 
-# Очистка предыдущих регистраций linuwu_sense в DKMS для безопасной переустановки
 if command -v dkms >/dev/null 2>&1; then
     for old_ver in $(dkms status 2>/dev/null | awk -F'[,:/]' '/linuwu_sense/ {gsub(/ /, "", $2); print $2}' | sort -u); do
         sudo dkms remove "linuwu_sense/${old_ver}" --all 2>/dev/null || true
     done
 fi
 
-# Патч совместимости с ядром Linux 7.3+ (замена удалённой функции strncpy на strscpy)
-find "$WORK_DAMX" -name "linuwu_sense.c" -exec sed -i 's/\bstrncpy(/strscpy(/g' {} +
+# Патч совместимости с ядрами, где strncpy удалён/заменён на strscpy
+if grep -rq "strscpy(" "/lib/modules/${RUNNING_KERNEL}/build/include/linux/string.h" 2>/dev/null; then
+    find "$WORK_DAMX" -name "linuwu_sense.c" -exec sed -i 's/\bstrncpy(/strscpy(/g' {} +
+fi
 
 INSTALL_SCRIPT=$(find "$WORK_DAMX" -maxdepth 3 -name "setup.sh" | head -n 1 || true)
 if [[ -z "$INSTALL_SCRIPT" ]]; then
@@ -98,7 +106,7 @@ if [[ -z "$INSTALL_SCRIPT" ]]; then
 fi
 
 if [[ -z "$INSTALL_SCRIPT" ]]; then
-    echo -e "${RED}Не найден внутренний скрипт setup.sh внутри архива DAMX.${NC}"
+    echo -e "${RED}Не найден внутренний скрипт setup.sh/install.sh внутри архива DAMX.${NC}" >&2
     exit 1
 fi
 

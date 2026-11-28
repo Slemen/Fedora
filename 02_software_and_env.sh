@@ -16,6 +16,7 @@ NC='\033[0m'
 STEP="подготовка"
 FINISHED=0
 SUDO_PID=""
+PARENT_PID=$$
 
 on_exit() {
     local rc=$?
@@ -29,17 +30,17 @@ on_exit() {
 trap on_exit EXIT
 
 if [[ $EUID -eq 0 ]]; then
-    echo -e "${RED}Ошибка: не запускайте скрипт от имени root (без sudo).${NC}"
+    echo -e "${RED}Ошибка: не запускайте скрипт от имени root (без sudo).${NC}" >&2
     exit 1
 fi
 
 if pgrep -x "dnf" >/dev/null 2>&1 || pgrep -x "dnf5" >/dev/null 2>&1; then
-    echo -e "${RED}Ошибка: пакетный менеджер DNF сейчас занят другим процессом. Дождитесь завершения и повторите.${NC}"
+    echo -e "${RED}Ошибка: пакетный менеджер DNF сейчас занят другим процессом. Дождитесь завершения и повторите.${NC}" >&2
     exit 1
 fi
 
 sudo -v
-( while sleep 50; do sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
+( while kill -0 "$PARENT_PID" 2>/dev/null; do sleep 50; sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
 SUDO_PID=$!
 
 echo -e "${CYAN}======================================================================${NC}"
@@ -48,7 +49,11 @@ echo -e "${CYAN}================================================================
 
 STEP="установка мультимедиа-кодеков и утилит видео"
 echo -e "\n${YELLOW}[1/6] Установка полных кодеков FFmpeg, GStreamer и утилит VA-API/GLX...${NC}"
-sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+if rpm -q ffmpeg-free >/dev/null 2>&1; then
+    sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+else
+    sudo dnf install -y ffmpeg
+fi
 sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly libva-nvidia-driver libva-utils vdpauinfo glx-utils
 
 STEP="установка Steam, GameMode, планировщиков и словарей"
@@ -61,7 +66,7 @@ STEP="включение системных служб оптимизации"
 echo -e "\n${YELLOW}[3/6] Активация system76-scheduler, earlyoom и btrfs-scrub.timer...${NC}"
 sudo systemctl enable --now com.system76.Scheduler.service
 sudo systemctl enable --now earlyoom.service
-ROOT_DEV=$(findmnt -n -o SOURCE / | sed 's/\[.*\]//')
+ROOT_DEV=$(findmnt -n -o SOURCE / | sed 's/\[.*\]//' || true)
 if [[ -n "$ROOT_DEV" ]]; then
     UNIT_ESC=$(systemd-escape -p "$ROOT_DEV")
     sudo systemctl enable "btrfs-scrub@${UNIT_ESC}.timer" 2>/dev/null || true
@@ -84,7 +89,6 @@ MOZ_ENABLE_WAYLAND=1
 NVD_BACKEND=direct
 EOF
 
-# Исключение каталога Steam из индексации файлов KDE Baloo (защита от фоновых фризов)
 if command -v balooctl6 >/dev/null 2>&1; then
     balooctl6 config add excludeFolders "$HOME/.local/share/Steam" 2>/dev/null || true
     balooctl6 restart 2>/dev/null || true
@@ -125,7 +129,7 @@ fi
 
 sudo dnf install -y jetbrains-mono-fonts-all
 mkdir -p "$HOME/.local/share/fonts/JetBrainsMonoNerd"
-if ! fc-list : family | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+if ! fc-list : family | grep -qi "JetBrainsMono Nerd Font"; then
     curl -fsSL --retry 3 "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" -o /tmp/JetBrainsMonoNerd.zip || true
     if [[ -f /tmp/JetBrainsMonoNerd.zip ]]; then
         unzip -oq /tmp/JetBrainsMonoNerd.zip -d "$HOME/.local/share/fonts/JetBrainsMonoNerd" "*.ttf" 2>/dev/null || true
@@ -135,7 +139,7 @@ fi
 fc-cache -f >/dev/null 2>&1 || true
 
 FONT_NAME="JetBrains Mono"
-if fc-list : family | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+if fc-list : family | grep -qi "JetBrainsMono Nerd Font"; then
     FONT_NAME="JetBrainsMono Nerd Font"
 fi
 
@@ -320,7 +324,13 @@ sudo cp "$HOME/.nanorc" /root/.nanorc
 
 STEP="смена оболочки пользователя на Fish"
 echo -e "\n${YELLOW}[6/6] Назначение Fish оболочкой по умолчанию для пользователя ${USER}...${NC}"
-sudo usermod -s /usr/bin/fish "$USER"
+FISH_BIN=$(command -v fish || echo "/usr/bin/fish")
+if [[ -x "$FISH_BIN" ]]; then
+    if ! grep -qx "$FISH_BIN" /etc/shells 2>/dev/null; then
+        echo "$FISH_BIN" | sudo tee -a /etc/shells > /dev/null
+    fi
+    sudo usermod -s "$FISH_BIN" "$USER"
+fi
 
 FINISHED=1
 echo -e "\n${GREEN}======================================================================${NC}"

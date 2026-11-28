@@ -25,7 +25,7 @@ curl -fsSL https://raw.githubusercontent.com/Slemen/Fedora/main/install.sh -o /t
    * Подключение **RPM Fusion** (Free & Nonfree) и обновление системы.
    * Установка **Timeshift** для управления снимками Btrfs.
    * Установка графического стека: драйвер **NVIDIA**, CUDA, Vulkan, **`intel-media-driver`** и службы сохранения видеопамяти при выходе из сна (`nvidia-suspend`, `nvidia-hibernate`, `nvidia-resume`).
-   * Ядерные твики `sysctl` (сетевой стек **CAKE + BBR**, `kernel.split_lock_mitigate = 0`, `vm.compaction_proactiveness = 0`, `vm.max_map_count`, ZRAM), отключение энергосбережения **Wi-Fi** (`wifi.powersave = 2` для стабильного пинга в играх), правила `udev` (`ntsync` и планировщик I/O `none` для NVMe), оптимизация SSD (**`noatime`** для Btrfs в `/etc/fstab` + лимит логов `journald` 150 МБ) и надёжная блокировка таймера `iTCO_wdt`.
+   * Ядерные твики `sysctl` (сетевой стек **CAKE + BBR**, `kernel.split_lock_mitigate = 0`, `vm.compaction_proactiveness = 0`, `vm.max_map_count`, ZRAM), отключение энергосбережения **Wi-Fi** (`wifi.powersave = 2` для стабильного пинга в играх), правила `udev` (`ntsync` и планировщик I/O `none` для NVMe), оптимизация SSD (**`noatime`** для всех разделов Btrfs в `/etc/fstab` + лимит логов `journald` 150 МБ) и надёжная блокировка таймера `iTCO_wdt`.
 2. **`02_software_and_env.sh` (Этап 2):**
    * Полные мультимедиа-кодеки (`ffmpeg`, `gstreamer1-plugins-bad-freeworld`, `gstreamer1-plugins-ugly`, `libva-nvidia-driver`) и утилиты диагностики графики (`libva-utils`, `vdpauinfo`, `glx-utils`).
    * Чистый **Steam**, **GameMode** (с добавлением пользователя в группу `gamemode`), службы `system76-scheduler`, `earlyoom`, `btrfs-scrub.timer`, словари проверки орфографии (`aspell` и `hunspell` RU/EN).

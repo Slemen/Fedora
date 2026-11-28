@@ -3,7 +3,7 @@ set -euo pipefail
 
 # ==============================================================================
 # ИНТЕРАКТИВНОЕ МЕНЮ УСТАНОВКИ И НАСТРОЙКИ FEDORA KDE (ACER NITRO V15-51)
-# ВНИМАНИЕ: Скрипты созданы автором под собственные нужды и конкретное железо
+# ВНИМАНИЕ: Скрипт создан автором под собственные нужды и конкретное железо
 # (Acer Nitro V15-51). Автор не несёт ответственности за последствия их использования.
 # ==============================================================================
 
@@ -40,9 +40,20 @@ run_step() {
 
 while true; do
     clear
-    S1="[ ]"; command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && S1="${GREEN}[✓]${NC}"
-    S2="[ ]"; [[ -x /usr/local/bin/nvgame ]] && S2="${GREEN}[✓]${NC}"
-    S3="[ ]"; (command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]]) && lsmod | grep -q "^linuwu_sense" && S3="${GREEN}[✓]${NC}"
+    S1="[ ]"
+    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && [[ -f /etc/sysctl.d/99-cachyos-tweaks.conf ]]; then
+        S1="${GREEN}[✓]${NC}"
+    fi
+
+    S2="[ ]"
+    if [[ -x /usr/local/bin/nvgame ]] && command -v fish >/dev/null 2>&1 && systemctl is-enabled --quiet earlyoom.service 2>/dev/null; then
+        S2="${GREEN}[✓]${NC}"
+    fi
+
+    S3="[ ]"
+    if (command -v DAMX >/dev/null 2>&1 || [[ -x /usr/bin/DAMX ]]) && lsmod | grep -q "^linuwu_sense"; then
+        S3="${GREEN}[✓]${NC}"
+    fi
 
     echo -e "${CYAN}======================================================================${NC}"
     echo -e "${CYAN}   УСТАНОВКА И НАСТРОЙКА FEDORA KDE ДЛЯ ACER NITRO V15-51 (v57)       ${NC}"
@@ -58,19 +69,19 @@ while true; do
 
     case "$choice" in
         1)
-            run_step "01_base_and_nvidia.sh"
+            run_step "01_base_and_nvidia.sh" || true
             read -rp "Нажмите Enter для возврата в меню..." </dev/tty
             ;;
         2)
-            run_step "02_software_and_env.sh"
+            run_step "02_software_and_env.sh" || true
             read -rp "Нажмите Enter для возврата в меню..." </dev/tty
             ;;
         3)
-            run_step "03_install_damx.sh"
+            run_step "03_install_damx.sh" || true
             read -rp "Нажмите Enter для возврата в меню..." </dev/tty
             ;;
         4)
-            run_step "04_verify_setup.sh"
+            run_step "04_verify_setup.sh" || true
             read -rp "Нажмите Enter для возврата в меню..." </dev/tty
             ;;
         5)

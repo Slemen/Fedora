@@ -16,6 +16,7 @@ NC='\033[0m'
 STEP="подготовка"
 FINISHED=0
 SUDO_PID=""
+PARENT_PID=$$
 
 on_exit() {
     local rc=$?
@@ -29,17 +30,17 @@ on_exit() {
 trap on_exit EXIT
 
 if [[ $EUID -eq 0 ]]; then
-    echo -e "${RED}Ошибка: не запускайте скрипт от имени root (без sudo).${NC}"
+    echo -e "${RED}Ошибка: не запускайте скрипт от имени root (без sudo).${NC}" >&2
     exit 1
 fi
 
 if pgrep -x "dnf" >/dev/null 2>&1 || pgrep -x "dnf5" >/dev/null 2>&1; then
-    echo -e "${RED}Ошибка: пакетный менеджер DNF сейчас занят другим процессом. Дождитесь завершения и повторите.${NC}"
+    echo -e "${RED}Ошибка: пакетный менеджер DNF сейчас занят другим процессом. Дождитесь завершения и повторите.${NC}" >&2
     exit 1
 fi
 
 sudo -v
-( while sleep 50; do sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
+( while kill -0 "$PARENT_PID" 2>/dev/null; do sleep 50; sudo -n true 2>/dev/null || exit 0; done ) >/dev/null 2>&1 &
 SUDO_PID=$!
 
 echo -e "${CYAN}======================================================================${NC}"
@@ -49,10 +50,11 @@ echo -e "${CYAN}================================================================
 STEP="оптимизация DNF5"
 echo -e "\n${YELLOW}[1/8] Ускорение пакетного менеджера DNF5...${NC}"
 DNF_CONF="/etc/dnf/dnf.conf"
+sudo touch "$DNF_CONF"
 for param in "max_parallel_downloads=10" "fastestmirror=True" "defaultyes=True" "timeout=30" "ip_resolve=4"; do
     key="${param%%=*}"
-    if grep -q "^${key}=" "$DNF_CONF" 2>/dev/null; then
-        sudo sed -i "s/^${key}=.*/${param}/" "$DNF_CONF"
+    if grep -qE "^${key}=" "$DNF_CONF"; then
+        sudo sed -i "s|^${key}=.*|${param}|" "$DNF_CONF"
     else
         echo "$param" | sudo tee -a "$DNF_CONF" > /dev/null
     fi
@@ -108,7 +110,7 @@ net.core.rmem_max = 16777216
 net.core.wmem_max = 16777216
 net.core.netdev_max_backlog = 16384
 EOF
-sudo sysctl --system > /dev/null
+sudo sysctl --system || true
 
 # Отключение энергосбережения Wi-Fi для стабильного пинга в онлайн-играх
 sudo mkdir -p /etc/NetworkManager/conf.d
@@ -132,16 +134,41 @@ sudo udevadm control --reload-rules && sudo udevadm trigger
 STEP="оптимизация SSD (noatime для Btrfs и лимит логов journald)"
 echo -e "\n${YELLOW}[7/8] Оптимизация SSD (noatime в fstab и лимит journald 150 МБ)...${NC}"
 sudo cp -n /etc/fstab /etc/fstab.bak
-if grep -q "btrfs" /etc/fstab && ! grep -q "noatime" /etc/fstab; then
-    if grep -q "subvol=" /etc/fstab; then
-        sudo sed -i '/btrfs/ s/\(subvol=[^,[:space:]]*\)/\1,noatime/g' /etc/fstab
-    else
-        sudo sed -i '/btrfs/ s/defaults/defaults,noatime/g' /etc/fstab
+
+# Добавляем noatime в 4-е поле (опции монтирования) для каждой строки btrfs, где его ещё нет
+sudo python3 - << 'PYEOF'
+from pathlib import Path
+
+fstab_path = Path("/etc/fstab")
+lines = fstab_path.read_text(encoding="utf-8").splitlines(keepends=True)
+changed = False
+out = []
+
+for line in lines:
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#"):
+        out.append(line)
+        continue
+    parts = line.split()
+    if len(parts) >= 4 and parts[2] == "btrfs":
+        opts = [o for o in parts[3].split(",") if o]
+        if "noatime" not in opts:
+            opts.append("noatime")
+            parts[3] = ",".join(opts)
+            line = "\t".join(parts) + ("\n" if line.endswith("\n") else "")
+            changed = True
+    out.append(line)
+
+if changed:
+    fstab_path.write_text("".join(out), encoding="utf-8")
+PYEOF
+
+sudo systemctl daemon-reload
+for mp in / /home; do
+    if findmnt -no TARGET "$mp" >/dev/null 2>&1; then
+        sudo mount -o remount "$mp" 2>/dev/null || true
     fi
-    sudo systemctl daemon-reload
-    sudo mount -o remount / 2>/dev/null || true
-    sudo mount -o remount /home 2>/dev/null || true
-fi
+done
 
 sudo mkdir -p /etc/systemd/journald.conf.d
 sudo tee /etc/systemd/journald.conf.d/99-size-limit.conf > /dev/null << 'EOF'
@@ -159,7 +186,11 @@ blacklist iTCO_vendor_support
 install iTCO_wdt /bin/true
 install iTCO_vendor_support /bin/true
 EOF
-sudo grubby --update-kernel=ALL --args="modprobe.blacklist=iTCO_wdt,iTCO_vendor_support" || true
+
+CURRENT_KARGS=$(sudo grubby --info=DEFAULT 2>/dev/null | awk -F= '/^args=/{print $2}' || true)
+if [[ "$CURRENT_KARGS" != *"modprobe.blacklist=iTCO_wdt,iTCO_vendor_support"* ]]; then
+    sudo grubby --update-kernel=ALL --args="modprobe.blacklist=iTCO_wdt,iTCO_vendor_support" || true
+fi
 
 FINISHED=1
 echo -e "\n${GREEN}======================================================================${NC}"

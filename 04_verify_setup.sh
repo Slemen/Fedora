@@ -21,14 +21,14 @@ echo -e "${CYAN}  ДИАГНОСТИКА СИСТЕМЫ FEDORA KDE ДЛЯ ACER N
 echo -e "${CYAN}======================================================================${NC}\n"
 
 # 1. DNF5
-if grep -q "max_parallel_downloads=10" /etc/dnf/dnf.conf && grep -q "ip_resolve=4" /etc/dnf/dnf.conf; then
+if grep -q "max_parallel_downloads=10" /etc/dnf/dnf.conf 2>/dev/null && grep -q "ip_resolve=4" /etc/dnf/dnf.conf 2>/dev/null; then
     ok "1. DNF5 ускорен (10 потоков, fastestmirror, ip_resolve=4)"
 else
-    fail "1. Параметры ускорения DNF5 не найдены"
+    fail "1. Параметры ускорения DNF5 не найдены в /etc/dnf/dnf.conf"
 fi
 
 # 2. RPM Fusion
-if dnf repolist 2>/dev/null | grep "rpmfusion-free" >/dev/null && dnf repolist 2>/dev/null | grep "rpmfusion-nonfree" >/dev/null; then
+if dnf repolist 2>/dev/null | grep -q "rpmfusion-free" && dnf repolist 2>/dev/null | grep -q "rpmfusion-nonfree"; then
     ok "2. Репозитории RPM Fusion Free и Nonfree подключены"
 else
     fail "2. Репозитории RPM Fusion не активны"
@@ -45,7 +45,7 @@ fi
 if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && rpm -q intel-media-driver >/dev/null 2>&1; then
     ok "4. Графический стек активен (NVIDIA + intel-media-driver)"
 else
-    fail "4. Драйвер NVIDIA или intel-media-driver не установлен"
+    fail "4. Драйвер NVIDIA не активен или intel-media-driver не установлен"
 fi
 
 # 5. Vulkan
@@ -56,10 +56,10 @@ else
 fi
 
 # 6. ZRAM
-if swapon --show 2>/dev/null | grep "zram" >/dev/null; then
+if swapon --show 2>/dev/null | grep -q "zram"; then
     ok "6. Сжатая память ZRAM активна"
 else
-    fail "6. ZRAM не активен"
+    fail "6. ZRAM не активен (проверьте swapon --show)"
 fi
 
 # 7. Сетевой планировщик CAKE + BBR и Wi-Fi powersave off
@@ -93,11 +93,11 @@ if findmnt -no OPTIONS / 2>/dev/null | grep -q "noatime" && \
    [[ -f /etc/systemd/journald.conf.d/99-size-limit.conf ]]; then
     ok "10. Оптимизация SSD: опция noatime для Btrfs и лимит логов journald (150 МБ)"
 else
-    fail "10. Опция noatime для Btrfs или лимит логов journald не применены"
+    fail "10. Опция noatime для Btrfs (нужна перезагрузка/ремаунт) или лимит логов journald не применены"
 fi
 
 # 11. Кодеки FFmpeg и утилиты видео
-if rpm -q ffmpeg >/dev/null 2>&1 && ! rpm -q ffmpeg-free >/dev/null 2>&1 && \
+if command -v ffmpeg >/dev/null 2>&1 && rpm -q ffmpeg >/dev/null 2>&1 && \
    command -v vainfo >/dev/null 2>&1 && command -v glxinfo >/dev/null 2>&1; then
     ok "11. Полные кодеки FFmpeg и утилиты VA-API / GLX (vainfo, glxinfo) установлены"
 else
@@ -130,7 +130,7 @@ else
 fi
 
 # 15. Блокировка iTCO_wdt
-if grep -q "blacklist iTCO_wdt" /etc/modprobe.d/watchdog.conf 2>/dev/null && ! lsmod | grep "^iTCO_wdt" >/dev/null; then
+if grep -q "blacklist iTCO_wdt" /etc/modprobe.d/watchdog.conf 2>/dev/null && ! lsmod | grep -q "^iTCO_wdt"; then
     ok "15. Аппаратный таймер iTCO_wdt заблокирован"
 else
     fail "15. Модуль iTCO_wdt всё ещё загружен (проверьте перезагрузку)"
@@ -140,7 +140,7 @@ fi
 if grep -q "DefaultProfile=Fish.profile" "$HOME/.config/konsolerc" 2>/dev/null && \
    [[ -f "$HOME/.local/share/konsole/Newbl1nk.colorscheme" ]] && \
    grep -q ",10," "$HOME/.local/share/konsole/Fish.profile" 2>/dev/null && \
-   fc-list : family | grep -i "JetBrainsMono Nerd Font" >/dev/null 2>&1; then
+   fc-list : family | grep -qi "JetBrainsMono Nerd Font"; then
     ok "16. Konsole настроен (профиль Fish, схема Newbl1nk и шрифт JetBrainsMono Nerd Font 10pt)"
 else
     fail "16. Профиль Konsole, схема Newbl1nk или шрифт JetBrainsMono Nerd Font не настроены"
@@ -170,7 +170,7 @@ else
 fi
 
 # 20. Состояние служб systemd
-FAILED_UNITS=$(systemctl --failed --no-legend | wc -l)
+FAILED_UNITS=$(systemctl --failed --no-legend 2>/dev/null | grep -c . || true)
 if [[ "$FAILED_UNITS" -eq 0 ]]; then
     ok "20. Упавшие системные службы (systemd failed units) отсутствуют"
 else
